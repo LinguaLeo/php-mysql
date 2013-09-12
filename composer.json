@@ -1,0 +1,13 @@
+{
+    "name": "lingualeo/rpc-php-service-helpers",
+    "authors": [
+        {
+            "name": "LinguaLeo",
+            "email": "vitkovskii@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+
+    }
+}
