@@ -1,13 +1,21 @@
 {
-    "name": "lingualeo/rpc-php-service-helpers",
+    "name": "lingualeo/php-mysql",
     "authors": [
         {
             "name": "LinguaLeo",
-            "email": "vitkovskii@gmail.com"
+            "email": "backend@lingualeo.com"
         }
     ],
     "minimum-stability": "dev",
     "require": {
 
+    },
+    "require-dev": {
+        "phpunit/phpunit": "3.8.x-dev"
+    },
+    "autoload": {
+        "psr-0": {
+            "LinguaLeo\\": "src/"
+        }
     }
 }
