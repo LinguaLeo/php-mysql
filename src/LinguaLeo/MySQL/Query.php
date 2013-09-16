@@ -2,7 +2,7 @@
 
 namespace LinguaLeo\MySQL;
 
-use LinguaLeo\MySQL\Exception\MySQLException;
+use LinguaLeo\MySQL\Exception\QueryException;
 
 class Query
 {
@@ -51,7 +51,7 @@ class Query
             $schemaName = $this->connectSchema;
         }
         if (!$schemaName) {
-            throw new MySQLException(
+            throw new QueryException(
                 sprintf('Schema is not defined for %s table', $tableName)
             );
         }
@@ -120,7 +120,7 @@ class Query
     private function executeUpdate($placeholders, array $values)
     {
         if (!$this->from) {
-            throw new MySQLException('Tables are not defined for update statement');
+            throw new QueryException('Tables are not defined for update statement');
         }
 
         $SQL = 'UPDATE '.implode(', ', $this->from)
@@ -152,7 +152,7 @@ class Query
         }
 
         if (!is_array($fragments)) {
-            throw new MySQLException(
+            throw new QueryException(
                 sprintf('Bad data type for fragments, given %s', gettype($fragments))
             );
         }
@@ -189,7 +189,7 @@ class Query
                     break;
                 default:
                     if (!is_scalar($value)) {
-                        throw new MySQLException(
+                        throw new QueryException(
                             sprintf(
                                 'The %s type of value is wrong for %s comparison',
                                 gettype($value),

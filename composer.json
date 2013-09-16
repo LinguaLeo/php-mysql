@@ -1,5 +1,6 @@
 {
     "name": "lingualeo/php-mysql",
+    "license": "MIT",
     "authors": [
         {
             "name": "LinguaLeo",
@@ -8,7 +9,7 @@
     ],
     "minimum-stability": "stable",
     "require": {
-
+        "php": ">=5.4.0"
     },
     "require-dev": {
         "phpunit/phpunit": "3.8.x-dev"

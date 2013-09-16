@@ -1,2 +1,5 @@
 /vendor/
 /.idea/
+/nbproject/
+/build/
+composer.lock
