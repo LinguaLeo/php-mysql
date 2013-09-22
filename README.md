@@ -5,7 +5,6 @@ Connection Pooling
 ------------------
 
 ```php
-
 $connect_map = [
     'db_name1' => 'hostname1',
     'db_name2' => 'hostname2',
@@ -22,14 +21,12 @@ $pool = new LinguaLeo\MySQL\Pool($config);
 $pool->connect('db_name1');
 $pool->connect('db_name2');
 $pool->connect('db_name3');
-
 ```
 
 Query: Insert
 -------------
 
 ```php
-
 $query = new LinguaLeo\MySQL\Query($pool);
 
 // INSERT INTO db_name1.table_name1(foo,bar) VALUES (1,2)
@@ -43,13 +40,13 @@ $query
 $query
     ->table('table_name1', 'db_name1')
     ->insert(['foo' => 1, 'bar' => 2], 'foo');
-
 ```
 
 Query: Update
 -------------
 
 ```php
+$query = new LinguaLeo\MySQL\Query($pool);
 
 // UPDATE db_name1.table_name1 SET foo = 1 WHERE bar = 2
 
@@ -57,26 +54,26 @@ $query
     ->table('table_name1', 'db_name1')
     ->where('bar', 2)
     ->update(['foo' => 1]);
-
 ```
 
 Query: Increment
 ----------------
 
 ```php
+$query = new LinguaLeo\MySQL\Query($pool);
 
 // UPDATE db_name1.table_name1 SET foo = foo + 1, bar = bar - 1 WHERE 1
 
 $query
     ->table('table_name1', 'db_name1')
     ->increment(['foo', 'bar' => -1]);
-
 ```
 
 Query: Delete
 -------------
 
 ```php
+$query = new LinguaLeo\MySQL\Query($pool);
 
 // DELETE FROM db_name1.table_name1 WHERE bar = 1 AND foo > 1
 
@@ -85,13 +82,13 @@ $query
     ->where('bar', 1)
     ->where('foo', 1, LinguaLeo\MySQL\Query::GREATER)
     ->delete();
-
 ```
 
 Query: Select
 -------------
 
 ```php
+$query = new LinguaLeo\MySQL\Query($pool);
 
 // SELECT * FROM db_name1.table_name1
 
@@ -127,6 +124,4 @@ $query
     ->where('j', null, LinguaLeo\MySQL\Query::IS_NOT_NULL)
     ->where('k & ? = 0', 8, LinguaLeo\MySQL\Query::CUSTOM)
     ->select(['a', 'b']);
-
 ```
-
