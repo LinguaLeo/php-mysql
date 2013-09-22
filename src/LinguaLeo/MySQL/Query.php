@@ -84,7 +84,7 @@ class Query
      * Run the UPDATE query
      *
      * @param array $columns
-     * @return \PDOStatement
+     * @return mixed
      */
     public function update(array $columns)
     {
@@ -98,7 +98,7 @@ class Query
      * Increment the columns by UPDATE query
      *
      * @param array $columns
-     * @return \PDOStatement
+     * @return mixed
      */
     public function increment(array $columns)
     {
@@ -160,15 +160,20 @@ class Query
         return implode(', ', $fragments);
     }
 
+    private function getPlaceholders($count)
+    {
+        return implode(',', array_fill(0, $count, '?'));
+    }
+
     private function getWhereSQLFragment()
     {
-        $placeholders = [];
-
         $this->queryParams = [];
 
         if (!$this->criteria) {
             return 1;
         }
+
+        $placeholders = [];
 
         foreach ($this->criteria as $criterion) {
             list($column, $value, $comparison) = $criterion;
@@ -184,7 +189,7 @@ class Query
                     break;
                 case self::IN:
                 case self::NOT_IN:
-                    $placeholders[] = $column.$comparison.'('.implode(',', array_fill(0, count((array)$value), '?')).')';
+                    $placeholders[] = $column.$comparison.'('.$this->getPlaceholders(count((array)$value)).')';
                     $this->queryParams = array_merge($this->queryParams, (array)$value);
                     break;
                 default:
@@ -203,6 +208,52 @@ class Query
         }
 
         return implode(' AND ', $placeholders);
+    }
+
+    /**
+     * Run the INSERT query on single row
+     *
+     * @param array $row
+     * @param array|string $onDuplicateUpdate
+     * @return mixed
+     * @throws QueryException
+     */
+    public function insert(array $row, $onDuplicateUpdate = [])
+    {
+        if (empty($this->from[0])) {
+            throw new QueryException('A table is not defined for insert statement');
+        }
+
+        $SQL = 'INSERT INTO '.$this->from[0].'('.implode(',', array_keys($row)).')'
+            .' VALUES ('.$this->getPlaceholders(count($row)).')';
+
+        if ($onDuplicateUpdate) {
+           $SQL .= ' ON DUPLICATE KEY UPDATE';
+           foreach ((array)$onDuplicateUpdate as $column) {
+               $SQL .= ' '.$column.' = VALUES('.$column.')';
+           }
+        }
+
+        return $this->getAffectedRows($this->executeQuery($SQL, array_values($row)));
+    }
+
+    /**
+     * Run the DELETE query
+     *
+     * @return mixed
+     * @throws QueryException
+     */
+    public function delete()
+    {
+        if (empty($this->from[0])) {
+            throw new QueryException('A table is not defined for delete statement');
+        }
+
+        $SQL = 'DELETE FROM '.$this->from[0].' WHERE '.$this->getWhereSQLFragment();
+
+        return $this->getAffectedRows(
+            $this->executeQuery($SQL, $this->queryParams)
+        );
     }
 
     /**

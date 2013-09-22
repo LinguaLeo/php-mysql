@@ -192,10 +192,69 @@ class QueryTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException \LinguaLeo\MySQL\Exception\MySQLException
+     * @expectedException \LinguaLeo\MySQL\Exception\QueryException
      */
     public function testUpdateWithNoTablesDefinition()
     {
         $this->query->update(['a' => 1]);
+    }
+
+    public function testInsertRow()
+    {
+        $this->assertSQL('INSERT INTO test.trololo(foo,bar) VALUES (?,?)', [1, -2]);
+
+        $this->query
+            ->table('trololo', 'test')
+            ->insert(['foo' => 1, 'bar' => -2]);
+    }
+
+    public function testInsertRowOnDuplicate()
+    {
+        $this->assertSQL(
+            'INSERT INTO test.trololo(foo,bar) VALUES (?,?) ON DUPLICATE KEY UPDATE foo = VALUES(foo)',
+            [1, -2]
+        );
+
+
+        $this->query
+            ->table('trololo', 'test')
+            ->insert(['foo' => 1, 'bar' => -2], 'foo');
+    }
+
+    /**
+     * @expectedException \LinguaLeo\MySQL\Exception\QueryException
+     */
+    public function testInsertWithNoTablesDefinition()
+    {
+        $this->query->insert(['a' => 1]);
+    }
+
+    /**
+     * @expectedException \LinguaLeo\MySQL\Exception\QueryException
+     */
+    public function testDeleteWithNoTablesDefinition()
+    {
+        $this->query->delete();
+    }
+
+    public function testDelete()
+    {
+        $this->assertSQL('DELETE FROM test.trololo WHERE 1');
+
+        $this->query->table('trololo', 'test')->delete();
+    }
+
+
+    public function testDeleteWithCondition()
+    {
+        $this->assertSQL(
+            'DELETE FROM test.trololo WHERE foo = ?',
+            [1]
+        );
+
+        $this->query
+            ->table('trololo', 'test')
+            ->where('foo', 1)
+            ->delete();
     }
 }
