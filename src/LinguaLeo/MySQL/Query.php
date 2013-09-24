@@ -6,24 +6,9 @@ use LinguaLeo\MySQL\Exception\QueryException;
 
 class Query
 {
-    const EQUAL = ' = ';
-    const EQUAL_GREATER = ' >= ';
-    const EQUAL_LESS = ' <= ';
-    const NOT_EQUAL = ' <> ';
-    const GREATER = ' > ';
-    const LESS = ' < ';
-    const IN = ' IN ';
-    const NOT_IN = ' NOT IN ';
-    const CUSTOM = '#CUSTOM';
-    const IS_NULL = ' IS NULL';
-    const IS_NOT_NULL = ' IS NOT NULL';
+    private $pool;
 
-    protected $pool;
-
-    private $connectSchema;
-    private $from;
-    private $criteria;
-    private $queryParams;
+    private $arguments;
 
     /**
      * Instantiate the query
@@ -35,162 +20,42 @@ class Query
         $this->pool = $pool;
     }
 
-    private function cleanup()
-    {
-        $this->connectSchema = null;
-        $this->from = [];
-        $this->criteria = [];
-        $this->queryParams = [];
-    }
-
-    public function table($tableName, $schemaName = null)
-    {
-        if (!$this->connectSchema) {
-            $this->connectSchema = $schemaName;
-        } elseif (!$schemaName) {
-            $schemaName = $this->connectSchema;
-        }
-        if (!$schemaName) {
-            throw new QueryException(
-                sprintf('Schema is not defined for %s table', $tableName)
-            );
-        }
-        $this->from[] = $schemaName.'.'.$tableName;
-        return $this;
-    }
-
-    public function where($column, $value, $comparison = self::EQUAL)
-    {
-        $this->criteria[] = [$column, $value, $comparison];
-        return $this;
-    }
-
-    /**
-     * Run the SELECT query
-     *
-     * @param array $columns
-     * @return \PDOStatement
-     */
-    public function select(array $columns = [])
-    {
-        $SQL = 'SELECT '.$this->implodeFragments($columns, '*')
-            .' FROM '.$this->implodeFragments($this->from, 'DUAL')
-            .' WHERE '.$this->getWhereSQLFragment();
-
-        return $this->executeQuery($SQL, $this->queryParams);
-    }
-
-    /**
-     * Run the UPDATE query
-     *
-     * @param array $columns
-     * @return mixed
-     */
-    public function update(array $columns)
-    {
-        return $this->executeUpdate(
-            implode(' = ?, ', array_keys($columns)).' = ?',
-            array_values($columns)
-        );
-    }
-
-    /**
-     * Increment the columns by UPDATE query
-     *
-     * @param array $columns
-     * @return mixed
-     */
-    public function increment(array $columns)
-    {
-        $placeholders = [];
-        $values = [];
-
-        foreach ($columns as $column => $value) {
-            if (is_int($column)) {
-                $placeholders[] = $value.' = '.$value.' + 1';
-            } else {
-                $placeholders[] = $column.' = '.$column.' + (?)';
-                $values[] = $value;
-            }
-        }
-
-        return $this->executeUpdate(implode(', ', $placeholders), $values);
-    }
-
-    private function executeUpdate($placeholders, array $values)
-    {
-        if (!$this->from) {
-            throw new QueryException('Tables are not defined for update statement');
-        }
-
-        $SQL = 'UPDATE '.implode(', ', $this->from)
-            .' SET '.$placeholders
-            .' WHERE '.$this->getWhereSQLFragment();
-
-        return $this->getAffectedRows(
-            $this->executeQuery($SQL, array_merge($values, $this->queryParams))
-        );
-    }
-
-    private function getAffectedRows($stmt)
-    {
-        if (!$stmt) {
-            return 0;
-        }
-
-        $affected = $stmt->rowCount();
-
-        $stmt->closeCursor();
-
-        return $affected;
-    }
-
-    private function implodeFragments($fragments, $default)
-    {
-        if (!$fragments) {
-            return $default;
-        }
-
-        if (!is_array($fragments)) {
-            throw new QueryException(
-                sprintf('Bad data type for fragments, given %s', gettype($fragments))
-            );
-        }
-
-        return implode(', ', $fragments);
-    }
-
     private function getPlaceholders($count)
     {
         return implode(',', array_fill(0, $count, '?'));
     }
 
-    private function getWhereSQLFragment()
+    private function getFrom(Criteria $criteria)
     {
-        $this->queryParams = [];
+        return $criteria->dbName.'.'.$criteria->tableName;
+    }
 
-        if (!$this->criteria) {
+    private function getWhere(Criteria $criteria)
+    {
+        $this->arguments = [];
+
+        if (empty($criteria->conditions)) {
             return 1;
         }
 
         $placeholders = [];
 
-        foreach ($this->criteria as $criterion) {
-            list($column, $value, $comparison) = $criterion;
+        foreach ($criteria->conditions as $condition) {
+            list($column, $value, $comparison) = $condition;
 
             switch ($comparison) {
-                case self::CUSTOM:
+                case Criteria::CUSTOM:
                     $placeholders[] = $column;
-                    $this->queryParams[] = $value;
+                    $this->arguments[] = $value;
                     break;
-                case self::IS_NOT_NULL:
-                case self::IS_NULL:
-                    $placeholders[] = $column.$comparison;
+                case Criteria::IS_NOT_NULL:
+                case Criteria::IS_NULL:
+                    $placeholders[] = $column.' '.$comparison;
                     break;
-                case self::IN:
-                case self::NOT_IN:
-                    $placeholders[] = $column.$comparison.'('.$this->getPlaceholders(count((array)$value)).')';
-                    $this->queryParams = array_merge($this->queryParams, (array)$value);
+                case Criteria::IN:
+                case Criteria::NOT_IN:
+                    $placeholders[] = $column.' '.$comparison.'('.$this->getPlaceholders(count((array)$value)).')';
+                    $this->arguments = array_merge($this->arguments, (array)$value);
                     break;
                 default:
                     if (!is_scalar($value)) {
@@ -203,7 +68,7 @@ class Query
                         );
                     }
                     $placeholders[] = $column.$comparison.'?';
-                    $this->queryParams[] = $value;
+                    $this->arguments[] = $value;
             }
         }
 
@@ -211,70 +76,138 @@ class Query
     }
 
     /**
-     * Run the INSERT query on single row
+     * Run the SELECT query
      *
-     * @param array $row
-     * @param array|string $onDuplicateUpdate
-     * @return mixed
-     * @throws QueryException
+     * @param Criteria $criteria
+     * @return \PDOStatement
      */
-    public function insert(array $row, $onDuplicateUpdate = [])
+    public function select(Criteria $criteria)
     {
-        if (empty($this->from[0])) {
-            throw new QueryException('A table is not defined for insert statement');
+        if (empty($criteria->fields)) {
+            $columns = '*';
+        } else {
+            $columns = implode(',', $criteria->fields);
         }
 
-        $SQL = 'INSERT INTO '.$this->from[0].'('.implode(',', array_keys($row)).')'
-            .' VALUES ('.$this->getPlaceholders(count($row)).')';
+        $SQL = 'SELECT '.$columns
+            .' FROM '.$this->getFrom($criteria)
+            .' WHERE '.$this->getWhere($criteria);
+
+        if ($criteria->limit) {
+            $SQL .= ' LIMIT '.(int)$criteria->offset.','.(int)$criteria->limit;
+        }
+
+        return $this->executeQuery($criteria->dbName, $SQL, $this->arguments);
+    }
+
+    /**
+     * Run the INSERT query on single row
+     *
+     * @param Criteria $criteria
+     * @param array|string $onDuplicateUpdate
+     * @return \PDOStatement
+     * @throws QueryException
+     */
+    public function insert(Criteria $criteria, $onDuplicateUpdate = [])
+    {
+        if (empty($criteria->fields)) {
+            throw new QueryException('No fields for insert statement');
+        }
+
+        $SQL = 'INSERT INTO '.$this->getFrom($criteria).'('.implode(',', $criteria->fields).')'
+            .' VALUES('.$this->getPlaceholders(count($criteria->fields)).')';
 
         if ($onDuplicateUpdate) {
            $SQL .= ' ON DUPLICATE KEY UPDATE';
            foreach ((array)$onDuplicateUpdate as $column) {
-               $SQL .= ' '.$column.' = VALUES('.$column.')';
+               $SQL .= ' '.$column.'=VALUES('.$column.')';
            }
         }
 
-        return $this->getAffectedRows($this->executeQuery($SQL, array_values($row)));
+        return $this->executeQuery($criteria->dbName, $SQL, $criteria->values);
     }
 
     /**
      * Run the DELETE query
      *
-     * @return mixed
+     * @return \PDOStatement
      * @throws QueryException
      */
-    public function delete()
+    public function delete(Criteria $criteria)
     {
-        if (empty($this->from[0])) {
-            throw new QueryException('A table is not defined for delete statement');
+        $SQL = 'DELETE FROM '.$this->getFrom($criteria).' WHERE '.$this->getWhere($criteria);
+
+        return $this->executeQuery($criteria->dbName, $SQL, $this->arguments);
+    }
+
+    /**
+     * Run the UPDATE query
+     *
+     * @param Criteria $criteria
+     * @return \PDOStatement
+     */
+    public function update(Criteria $criteria)
+    {
+        return $this->executeUpdate($criteria, function ($fields) {
+            return implode('=?,', $fields).'=?';
+        });
+    }
+
+    /**
+     * Increment the columns by UPDATE query
+     *
+     * @param Criteria $criteria
+     * @return \PDOStatement
+     */
+    public function increment(Criteria $criteria)
+    {
+        return $this->executeUpdate($criteria, function ($fields) {
+            $placeholders = [];
+
+            foreach ($fields as $field) {
+                $placeholders[] = $field.'='.$field.'+(?)';
+            }
+
+            return implode(',', $placeholders);
+        });
+    }
+
+    private function executeUpdate(Criteria $criteria, $placeholdersGenerator)
+    {
+        if (!$criteria->fields) {
+            throw new QueryException('No fields for update statement');
         }
 
-        $SQL = 'DELETE FROM '.$this->from[0].' WHERE '.$this->getWhereSQLFragment();
+        $SQL = 'UPDATE '.$this->getFrom($criteria)
+            .' SET '.call_user_func($placeholdersGenerator, $criteria->fields)
+            .' WHERE '.$this->getWhere($criteria);
 
-        return $this->getAffectedRows(
-            $this->executeQuery($SQL, $this->queryParams)
+        return $this->executeQuery(
+            $criteria->dbName,
+            $SQL,
+            array_merge($criteria->values, $this->arguments)
         );
     }
+
 
     /**
      * Executes the query with parameters
      *
+     * @param string $dbName
      * @param string $query
      * @param array $params
      * @return \PDOStatement
      */
-    public function executeQuery($query, $params = [])
+    public function executeQuery($dbName, $query, $params = [])
     {
-        $conn = $this->pool->connect($this->connectSchema);
+        $conn = $this->pool->connect($dbName);
+
         if ($params) {
             $stmt = $conn->prepare($query);
-
             $stmt->execute($params);
         } else {
             $stmt = $conn->query($query);
         }
-
-        $this->cleanup();
 
         return $stmt;
     }

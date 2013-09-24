@@ -9,6 +9,11 @@ class QueryTest extends \PHPUnit_Framework_TestCase
      */
     protected $query;
 
+    /*
+     * @var Criteria
+     */
+    protected $criteria;
+
     public function setUp()
     {
         parent::setUp();
@@ -18,6 +23,8 @@ class QueryTest extends \PHPUnit_Framework_TestCase
             ['executeQuery'],
             [new Pool(new Configuration(['test' => 'localhost'], 'test', 'test'))]
         );
+
+        $this->criteria = new Criteria('test', 'trololo');
     }
 
     private function assertSQL($query, $parameters = [])
@@ -27,7 +34,7 @@ class QueryTest extends \PHPUnit_Framework_TestCase
         $this->query
             ->expects($this->once())
             ->method('executeQuery')
-            ->with($query, $parameters)
+            ->with('test', $query, $parameters)
             ->will($this->returnValue($stmt));
     }
 
@@ -35,95 +42,96 @@ class QueryTest extends \PHPUnit_Framework_TestCase
     {
         $this->assertSQL('SELECT * FROM test.trololo WHERE 1');
 
-        $this->query
-            ->table('trololo', 'test')
-            ->select();
-    }
-
-    public function testFindAllFromTwoTables()
-    {
-        $this->assertSQL('SELECT * FROM test.foo, test.bar WHERE 1');
-
-        $this->query
-            ->table('foo', 'test')
-            ->table('bar')
-            ->select();
+        $this->query->select($this->criteria);
     }
 
     public function testFindAllWithColumns()
     {
-        $this->assertSQL('SELECT foo, bar + 1 FROM test.trololo WHERE 1');
+        $this->assertSQL('SELECT foo,bar + 1 FROM test.trololo WHERE 1');
 
-        $this->query
-            ->table('trololo', 'test')
-            ->select(['foo', 'bar + 1']);
+        $this->criteria->read(['foo', 'bar + 1']);
+
+        $this->query->select($this->criteria);
     }
 
     public function testFindAllWithOnceWhere()
     {
-        $this->assertSQL('SELECT * FROM test.trololo WHERE a = ?', [1]);
+        $this->assertSQL('SELECT * FROM test.trololo WHERE a=?', [1]);
 
-        $this->query
-            ->table('trololo', 'test')
-            ->where('a', 1)
-            ->select();
+        $this->criteria->where('a', 1);
+
+        $this->query->select($this->criteria);
+    }
+
+    public function testFindWithLimit()
+    {
+        $this->assertSQL('SELECT * FROM test.trololo WHERE 1 LIMIT 0,1');
+
+        $this->criteria->limit(1);
+
+        $this->query->select($this->criteria);
+    }
+
+    public function testFindWithLimitOffset()
+    {
+        $this->assertSQL('SELECT * FROM test.trololo WHERE 1 LIMIT 2,1');
+
+        $this->criteria->limit(1, 2);
+
+        $this->query->select($this->criteria);
     }
 
     public function testFindAllWithComplexWhere()
     {
         $this->assertSQL(
-            'SELECT * FROM test.trololo WHERE a <> ? AND b > ? AND c < ? AND d >= ? AND e <= ?',
+            'SELECT * FROM test.trololo WHERE a<>? AND b>? AND c<? AND d>=? AND e<=?',
             [1, 2, 3, 4, 5]
         );
 
-        $this->query
-            ->table('trololo', 'test')
-            ->where('a', 1, Query::NOT_EQUAL)
-            ->where('b', 2, Query::GREATER)
-            ->where('c', 3, Query::LESS)
-            ->where('d', 4, Query::EQUAL_GREATER)
-            ->where('e', 5, Query::EQUAL_LESS)
-            ->select();
+        $this->criteria->where('a', 1, Criteria::NOT_EQUAL);
+        $this->criteria->where('b', 2, Criteria::GREATER);
+        $this->criteria->where('c', 3, Criteria::LESS);
+        $this->criteria->where('d', 4, Criteria::EQUAL_GREATER);
+        $this->criteria->where('e', 5, Criteria::EQUAL_LESS);
+
+        $this->query->select($this->criteria);
     }
 
     public function testFindAllWithInWhere()
     {
         $this->assertSQL(
-            'SELECT * FROM test.trololo WHERE a IN (?,?,?)',
+            'SELECT * FROM test.trololo WHERE a IN(?,?,?)',
             [1, 2, 3]
         );
 
-        $this->query
-            ->table('trololo', 'test')
-            ->where('a', [1, 2, 3], Query::IN)
-            ->select();
+        $this->criteria->where('a', [1, 2, 3], Criteria::IN);
+
+        $this->query->select($this->criteria);
     }
 
     public function testFindAllWithNotInWhere()
     {
         $this->assertSQL(
-            'SELECT * FROM test.trololo WHERE a NOT IN (?,?,?)',
+            'SELECT * FROM test.trololo WHERE a NOT IN(?,?,?)',
             [1, 2, 3]
         );
 
-        $this->query
-            ->table('trololo', 'test')
-            ->where('a', [1, 2, 3], Query::NOT_IN)
-            ->select();
+        $this->criteria->where('a', [1, 2, 3], Criteria::NOT_IN);
+
+        $this->query->select($this->criteria);
     }
 
     public function testFindAllWithCompinedInEqualWhere()
     {
         $this->assertSQL(
-            'SELECT * FROM test.trololo WHERE a IN (?,?,?) AND b = ?',
+            'SELECT * FROM test.trololo WHERE a IN(?,?,?) AND b=?',
             [1, 2, 3, 4]
         );
 
-        $this->query
-            ->table('trololo', 'test')
-            ->where('a', [1, 2, 3], Query::IN)
-            ->where('b', 4)
-            ->select();
+        $this->criteria->where('a', [1, 2, 3], Criteria::IN);
+        $this->criteria->where('b', 4);
+
+        $this->query->select($this->criteria);
     }
 
     public function testFindAllWithCustomWhere()
@@ -133,128 +141,107 @@ class QueryTest extends \PHPUnit_Framework_TestCase
             [1]
         );
 
-        $this->query
-            ->table('trololo', 'test')
-            ->where('a = b + (?)', 1, Query::CUSTOM)
-            ->select();
+        $this->criteria->where('a = b + (?)', 1, Criteria::CUSTOM);
+
+        $this->query->select($this->criteria);
     }
 
     public function testFindAllIsNull()
     {
         $this->assertSQL('SELECT * FROM test.trololo WHERE a IS NULL');
 
-        $this->query
-            ->table('trololo', 'test')
-            ->where('a', null, Query::IS_NULL)
-            ->select();
+        $this->criteria->where('a', null, Criteria::IS_NULL);
+
+        $this->query->select($this->criteria);
     }
 
     public function testFindAllIsNotNull()
     {
         $this->assertSQL('SELECT * FROM test.trololo WHERE a IS NOT NULL');
 
-        $this->query
-            ->table('trololo', 'test')
-            ->where('a', null, Query::IS_NOT_NULL)
-            ->select();
-    }
+        $this->criteria->where('a', null, Criteria::IS_NOT_NULL);
 
-    public function testExpressionInSelect()
-    {
-        $this->assertSQL('SELECT 1 + 1 FROM DUAL WHERE 1');
-
-        $this->query->select(['1 + 1']);
+        $this->query->select($this->criteria);
     }
 
     public function testUpdateValues()
     {
         $this->assertSQL(
-            'UPDATE test.trololo SET a = ? WHERE 1',
+            'UPDATE test.trololo SET a=? WHERE 1',
             [1]
         );
 
-        $this->query
-            ->table('trololo', 'test')
-            ->update(['a' => 1]);
+        $this->criteria->write(['a' => 1]);
+
+        $this->query->update($this->criteria);
     }
 
     public function testIncrementValues()
     {
         $this->assertSQL(
-            'UPDATE test.trololo SET a = a + 1, b = b + (?) WHERE c = ?',
-            [-1, 2]
+            'UPDATE test.trololo SET a=a+(?),b=b+(?) WHERE c=?',
+            [1, -1, 2]
         );
 
-        $this->query
-            ->table('trololo', 'test')
-            ->where('c', 2)
-            ->increment(['a', 'b' => -1]);
+        $this->criteria->write(['a' => 1, 'b' => -1]);
+        $this->criteria->where('c', 2);
+
+        $this->query->increment($this->criteria);
     }
 
     /**
      * @expectedException \LinguaLeo\MySQL\Exception\QueryException
      */
-    public function testUpdateWithNoTablesDefinition()
+    public function testUpdateWithNoWriteDefinition()
     {
-        $this->query->update(['a' => 1]);
+        $this->query->update($this->criteria);
     }
 
     public function testInsertRow()
     {
-        $this->assertSQL('INSERT INTO test.trololo(foo,bar) VALUES (?,?)', [1, -2]);
+        $this->assertSQL('INSERT INTO test.trololo(foo,bar) VALUES(?,?)', [1, -2]);
 
-        $this->query
-            ->table('trololo', 'test')
-            ->insert(['foo' => 1, 'bar' => -2]);
+        $this->criteria->write(['foo' => 1, 'bar' => -2]);
+
+        $this->query->insert($this->criteria);
     }
 
     public function testInsertRowOnDuplicate()
     {
         $this->assertSQL(
-            'INSERT INTO test.trololo(foo,bar) VALUES (?,?) ON DUPLICATE KEY UPDATE foo = VALUES(foo)',
+            'INSERT INTO test.trololo(foo,bar) VALUES(?,?) ON DUPLICATE KEY UPDATE foo=VALUES(foo)',
             [1, -2]
         );
 
+        $this->criteria->write(['foo' => 1, 'bar' => -2]);
 
-        $this->query
-            ->table('trololo', 'test')
-            ->insert(['foo' => 1, 'bar' => -2], 'foo');
+        $this->query->insert($this->criteria, 'foo');
     }
 
     /**
      * @expectedException \LinguaLeo\MySQL\Exception\QueryException
      */
-    public function testInsertWithNoTablesDefinition()
+    public function testInsertWithNoWrtieDefinition()
     {
-        $this->query->insert(['a' => 1]);
-    }
-
-    /**
-     * @expectedException \LinguaLeo\MySQL\Exception\QueryException
-     */
-    public function testDeleteWithNoTablesDefinition()
-    {
-        $this->query->delete();
+        $this->query->insert($this->criteria);
     }
 
     public function testDelete()
     {
         $this->assertSQL('DELETE FROM test.trololo WHERE 1');
 
-        $this->query->table('trololo', 'test')->delete();
+        $this->query->delete($this->criteria);
     }
-
 
     public function testDeleteWithCondition()
     {
         $this->assertSQL(
-            'DELETE FROM test.trololo WHERE foo = ?',
+            'DELETE FROM test.trololo WHERE foo=?',
             [1]
         );
 
-        $this->query
-            ->table('trololo', 'test')
-            ->where('foo', 1)
-            ->delete();
+        $this->criteria->where('foo', 1);
+
+        $this->query->delete($this->criteria);
     }
 }

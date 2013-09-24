@@ -7,9 +7,10 @@
             "email": "backend@lingualeo.com"
         }
     ],
-    "minimum-stability": "stable",
+    "minimum-stability": "dev",
     "require": {
-        "php": ">=5.4.0"
+        "php": ">=5.4.0",
+        "tz-lom/hsphp": "dev-master"
     },
     "require-dev": {
         "phpunit/phpunit": "3.8.x-dev"
