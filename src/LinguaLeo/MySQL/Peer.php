@@ -26,13 +26,15 @@ class Peer
         $this->tableName = $tableName;
     }
 
-    protected function openTable()
+    protected function getNewCriteria()
     {
-        return $this->query->table($this->tableName, $this->schemaName);
+        return new Criteria($this->schemaName, $this->tableName);
     }
 
-    protected function fetchPair($stmt)
+    protected function selectKeyValue($criteria)
     {
+        $stmt = $this->query->select($criteria);
+
         $result = [];
 
         while ($row = $stmt->fetch(\PDO::FETCH_NUM)) {
@@ -44,8 +46,10 @@ class Peer
         return $result;
     }
 
-    protected function fetchOne($stmt)
+    protected function selectOne($criteria)
     {
+        $stmt = $this->query->select($criteria);
+
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         $stmt->closeCursor();
@@ -53,9 +57,9 @@ class Peer
         return $row;
     }
 
-    protected function fetchValue($stmt, $column)
+    protected function selectValue($criteria, $column)
     {
-        $row = $this->fetchOne($stmt);
+        $row = $this->selectOne($criteria);
 
         if (isset($row[$column])) {
             return $row[$column];
@@ -64,8 +68,10 @@ class Peer
         return false;
     }
 
-    protected function fetchTable($stmt)
+    protected function selectTable($criteria)
     {
+        $stmt = $this->query->select($criteria);
+
         $table = [];
 
         while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
@@ -77,5 +83,38 @@ class Peer
         $stmt->closeCursor();
 
         return $table;
+    }
+
+    private function getAffectedRows($stmt)
+    {
+        if (!$stmt) {
+            return 0;
+        }
+
+        $affected = $stmt->rowCount();
+
+        $stmt->closeCursor();
+
+        return $affected;
+    }
+
+    protected function increment($criteria)
+    {
+        return $this->getAffectedRows($this->query->increment($criteria));
+    }
+
+    protected function update($criteria)
+    {
+        return $this->getAffectedRows($this->query->update($criteria));
+    }
+
+    protected function delete($criteria)
+    {
+        return $this->getAffectedRows($this->query->delete($criteria));
+    }
+
+    protected function insert($criteria, $onDuplicateUpdate = [])
+    {
+        return $this->getAffectedRows($this->query->insert($criteria, $onDuplicateUpdate));
     }
 }
