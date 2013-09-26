@@ -64,7 +64,9 @@ class Query
 
         switch ($comparison) {
             case Criteria::IN:
-                $socket->select($index, '=', [0], $criteria->limit ?: 1, $criteria->offset ?: 0, $value);
+                $begin = (int)$criteria->offset;
+                $limit = $criteria->limit ?: 1;
+                $socket->select($index, '=', [0], $begin + $limit, $begin, $value);
                 break;
             case Criteria::EQUAL:
             case Criteria::EQUAL_GREATER:

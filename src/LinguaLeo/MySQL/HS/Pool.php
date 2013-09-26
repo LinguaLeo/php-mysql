@@ -3,6 +3,7 @@
 namespace LinguaLeo\MySQL\HS;
 
 use HSPHP\WriteSocket;
+use LinguaLeo\MySQL\Configuration;
 
 class Pool extends \LinguaLeo\MySQL\Pool
 {
