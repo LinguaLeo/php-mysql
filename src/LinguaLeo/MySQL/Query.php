@@ -200,8 +200,35 @@ class Query
      */
     public function executeQuery($dbName, $query, $params = [])
     {
-        $conn = $this->pool->connect($dbName);
+        $force = false;
+        do {
+            try {
+                return $this->getStatement($this->pool->connect($dbName, $force), $query, $params);
+            } catch (\PDOException $e) {
+                list($generalError, $code, $message) = $e->errorInfo;
+                switch ($code) {
+                    case 2006: // MySQL server has gone away
+                    case 2013: // Lost connection to MySQL server during query
+                        if (!$force) {
+                            $force = true;
+                            break;
+                        }
+                    default: throw $e;
+                }
+            }
+        } while (true);
+    }
 
+    /**
+     * Run the query
+     *
+     * @param Connection $conn
+     * @param string $query
+     * @param array $params
+     * @return \PDOStatement
+     */
+    protected function getStatement($conn, $query, $params)
+    {
         if ($params) {
             $stmt = $conn->prepare($query);
             $stmt->execute($params);

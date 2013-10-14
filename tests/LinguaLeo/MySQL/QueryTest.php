@@ -189,6 +189,25 @@ class QueryTest extends \PHPUnit_Framework_TestCase
         $this->query->increment($this->criteria);
     }
 
+    public function provideNonScalarValue()
+    {
+        return [
+            [[]],
+            [new \stdClass()],
+            [function () {}]
+        ];
+    }
+
+    /**
+     * @dataProvider provideNonScalarValue
+     * @expectedException \LinguaLeo\MySQL\Exception\QueryException
+     */
+    public function testNonScalarValueInCondition($value)
+    {
+        $this->criteria->where('foo', $value);
+        $this->query->select($this->criteria);
+    }
+
     /**
      * @expectedException \LinguaLeo\MySQL\Exception\QueryException
      */
