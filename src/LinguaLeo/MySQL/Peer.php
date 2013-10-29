@@ -68,6 +68,17 @@ class Peer
         return false;
     }
 
+    protected function selectMany($criteria, $style = \PDO::FETCH_ASSOC)
+    {
+        $stmt = $this->query->select($criteria);
+
+        $items = $stmt->fetchAll($style);
+
+        $stmt->closeCursor();
+
+        return $items;
+    }
+
     protected function selectTable($criteria)
     {
         $stmt = $this->query->select($criteria);
