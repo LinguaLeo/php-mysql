@@ -205,18 +205,30 @@ class Query
             try {
                 return $this->getStatement($this->pool->connect($dbName, $force), $query, $params);
             } catch (\PDOException $e) {
-                list($generalError, $code, $message) = $e->errorInfo;
-                switch ($code) {
-                    case 2006: // MySQL server has gone away
-                    case 2013: // Lost connection to MySQL server during query
-                        if (!$force) {
-                            $force = true;
-                            break;
-                        }
-                    default: throw $e;
-                }
+                $force = $this->hideQueryException($e, $force);
             }
         } while (true);
+    }
+
+    /**
+     * Prevent query exception
+     *
+     * @param \PDOException $e
+     * @param boolean $force
+     * @return boolean
+     * @throws \PDOException
+     */
+    private function hideQueryException(\PDOException $e, $force)
+    {
+        list($generalError, $code, $message) = $e->errorInfo;
+        switch ($code) {
+            case 2006: // MySQL server has gone away
+            case 2013: // Lost connection to MySQL server during query
+                if (!$force) {
+                    return true;
+                }
+            default: throw $e;
+        }
     }
 
     /**
