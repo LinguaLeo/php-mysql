@@ -119,9 +119,11 @@ class Query
 
         if ($onDuplicateUpdate) {
            $SQL .= ' ON DUPLICATE KEY UPDATE';
+           $updates = array();
            foreach ((array)$onDuplicateUpdate as $column) {
-               $SQL .= ' '.$column.'=VALUES('.$column.')';
+                $updates[] = ' '.$column.'=VALUES('.$column.')';
            }
+           $SQL .= implode(',', $updates);
         }
 
         return $this->executeQuery($criteria->dbName, $SQL, $criteria->values);

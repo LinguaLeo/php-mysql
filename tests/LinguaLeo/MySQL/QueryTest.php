@@ -237,6 +237,18 @@ class QueryTest extends \PHPUnit_Framework_TestCase
         $this->query->insert($this->criteria, 'foo');
     }
 
+    public function testInsertRowOnDuplicateTwoColumns()
+    {
+        $this->assertSQL(
+            'INSERT INTO test.trololo(foo,bar,baz) VALUES(?,?,?) ON DUPLICATE KEY UPDATE foo=VALUES(foo), baz=VALUES(baz)',
+            [1, -2, 3]
+        );
+
+        $this->criteria->write(['foo' => 1, 'bar' => -2, 'baz' => 3]);
+
+        $this->query->insert($this->criteria, array('foo', 'baz'));
+    }
+
     /**
      * @expectedException \LinguaLeo\MySQL\Exception\QueryException
      */
