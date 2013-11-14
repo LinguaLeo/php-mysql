@@ -118,15 +118,25 @@ class Query
             .' VALUES('.$this->getPlaceholders(count($criteria->fields)).')';
 
         if ($onDuplicateUpdate) {
-           $SQL .= ' ON DUPLICATE KEY UPDATE';
-           $updates = array();
-           foreach ((array)$onDuplicateUpdate as $column) {
-                $updates[] = ' '.$column.'=VALUES('.$column.')';
-           }
-           $SQL .= implode(',', $updates);
+            $SQL .= ' ON DUPLICATE KEY UPDATE '.$this->getDuplicateUpdatedValues($onDuplicateUpdate);
         }
 
         return $this->executeQuery($criteria->dbName, $SQL, $criteria->values);
+    }
+
+    /**
+     * Get SQL fragment for DUPLICATE KEY UPDATE statement
+     *
+     * @param array|string $columns
+     * @return string
+     */
+    private function getDuplicateUpdatedValues($columns)
+    {
+        $updates = [];
+        foreach ((array)$columns as $column) {
+             $updates[] = $column.'=VALUES('.$column.')';
+        }
+        return implode(',', $updates);
     }
 
     /**
