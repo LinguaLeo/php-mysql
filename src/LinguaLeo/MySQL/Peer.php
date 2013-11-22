@@ -26,6 +26,14 @@ class Peer
         $this->tableName = $tableName;
     }
 
+    /**
+     * @return string
+     */
+    protected function getLastInsertId()
+    {
+        return $this->query->getConnection($this->schemaName)->lastInsertId();
+    }
+
     protected function getNewCriteria()
     {
         return new Criteria($this->schemaName, $this->tableName);

@@ -12,6 +12,11 @@ class Pool
         $this->config = $config;
     }
 
+    /**
+     * @param string $dbname
+     * @param bool $force
+     * @return Connection
+     */
     public function connect($dbname, $force = false)
     {
         $host = $this->config->getHost($dbname);

@@ -142,6 +142,7 @@ class Query
     /**
      * Run the DELETE query
      *
+     * @param Criteria $criteria
      * @return \PDOStatement
      * @throws QueryException
      */
@@ -220,6 +221,11 @@ class Query
                 $force = $this->hideQueryException($e, $force);
             }
         } while (true);
+    }
+
+    public function getConnection($dbName)
+    {
+        return $this->pool->connect($dbName);
     }
 
     /**
