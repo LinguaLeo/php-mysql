@@ -11,30 +11,15 @@ class PeerTest extends \PHPUnit_Framework_TestCase
     public function testSelectOneException()
     {
         // GIVEN
-
-        // PDOStatement
-        $pdoStatementMock = $this->getMock('PDOStatement');
-        $pdoStatementMock
-            ->expects($this->once())
-            ->method('fetch')
-            ->will($this->returnValue(false));
-        // Query
-        $queryMock = $this->getMockBuilder('LinguaLeo\MySQL\Query')
-            ->disableOriginalConstructor()
-            ->getMock();
-        $queryMock
-            ->expects($this->once())
-            ->method('select')
-            ->will($this->returnValue($pdoStatementMock));
-
-        // Criteria
-        $criteria = new Criteria('dbName', 'tableName');
+        $pdoStatementMock = $this->getPDOStatementMock(false);
+        $queryMock = $this->getQueryMock($pdoStatementMock);
+        $criteriaMock = $this->getCriteriaMock();
 
         // WHEN
         $peer = new Peer($queryMock, 'dbName', 'tableName');
-        $peer->selectOne($criteria);
+        $peer->selectOne($criteriaMock);
 
-        //THEN
+        // THEN
         // exception will be thrown
 
     }
@@ -42,18 +27,40 @@ class PeerTest extends \PHPUnit_Framework_TestCase
     public function testSelectOne()
     {
         // GIVEN
-
-        // Sample row
         $sampleRow = ['foo' => 'bar'];
+        $pdoStatementMock = $this->getPDOStatementMock($sampleRow);
+        $queryMock = $this->getQueryMock($pdoStatementMock);
+        $criteriaMock = $this->getCriteriaMock();
 
-        // PDOStatement
+        // WHEN
+        $peer = new Peer($queryMock, 'dbName', 'tableName');
+        $row = $peer->selectOne($criteriaMock);
+
+        // THEN
+        $this->assertSame($sampleRow, $row);
+    }
+
+    /**
+     * @param $returnValue
+     * @return \PHPUnit_Framework_MockObject_MockObject
+     */
+    protected function getPDOStatementMock($returnValue)
+    {
         $pdoStatementMock = $this->getMock('PDOStatement');
         $pdoStatementMock
             ->expects($this->once())
             ->method('fetch')
-            ->will($this->returnValue($sampleRow));
+            ->will($this->returnValue($returnValue));
 
-        // Query
+        return $pdoStatementMock;
+    }
+
+    /**
+     * @param $pdoStatementMock
+     * @return \PHPUnit_Framework_MockObject_MockObject
+     */
+    protected function getQueryMock($pdoStatementMock)
+    {
         $queryMock = $this->getMockBuilder('LinguaLeo\MySQL\Query')
             ->disableOriginalConstructor()
             ->getMock();
@@ -62,14 +69,18 @@ class PeerTest extends \PHPUnit_Framework_TestCase
             ->method('select')
             ->will($this->returnValue($pdoStatementMock));
 
-        // Criteria
-        $criteria = new Criteria('dbName', 'tableName');
+        return $queryMock;
+    }
 
-        // WHEN
-        $peer = new Peer($queryMock, 'dbName', 'tableName');
-        $row = $peer->selectOne($criteria);
+    /**
+     * @return \PHPUnit_Framework_MockObject_MockObject
+     */
+    protected function getCriteriaMock()
+    {
+        $criteriaMock = $this->getMockBuilder('LinguaLeo\MySQL\Criteria')
+            ->disableOriginalConstructor()
+            ->getMock();
 
-        //THEN
-        $this->assertSame($sampleRow, $row);
+        return $criteriaMock;
     }
 } 
