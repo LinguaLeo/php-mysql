@@ -2,6 +2,8 @@
 
 namespace LinguaLeo\MySQL;
 
+use LinguaLeo\MySQL\Exception\MysqlNotFoundException;
+
 class Peer
 {
     /**
@@ -26,17 +28,19 @@ class Peer
         $this->tableName = $tableName;
     }
 
-    /**
-     * @return string
-     */
-    protected function getLastInsertId()
-    {
-        return $this->query->getConnection($this->schemaName)->lastInsertId();
-    }
-
     protected function getNewCriteria()
     {
         return new Criteria($this->schemaName, $this->tableName);
+    }
+
+    /**
+     * @param Criteria $criteria
+     * @return bool
+     */
+    protected function selectCount($criteria)
+    {
+        $criteria->read(['COUNT (*) as CNT']);
+        return $this->selectValue($criteria, 'CNT');
     }
 
     protected function selectKeyValue($criteria)
@@ -54,6 +58,11 @@ class Peer
         return $result;
     }
 
+    /**
+     * @param Criteria $criteria
+     * @return array
+     * @throws Exception\MysqlNotFoundException
+     */
     protected function selectOne($criteria)
     {
         $stmt = $this->query->select($criteria);
@@ -61,6 +70,10 @@ class Peer
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         $stmt->closeCursor();
+
+        if (false === $row) {
+            throw new MysqlNotFoundException();
+        }
 
         return $row;
     }
@@ -135,5 +148,13 @@ class Peer
     protected function insert($criteria, $onDuplicateUpdate = [])
     {
         return $this->getAffectedRows($this->query->insert($criteria, $onDuplicateUpdate));
+    }
+
+    /**
+     * @return string
+     */
+    protected function getLastInsertId()
+    {
+        return $this->query->getConnection($this->schemaName)->lastInsertId();
     }
 }
