@@ -63,7 +63,7 @@ class Peer
      * @return array
      * @throws Exception\MysqlNotFoundException
      */
-    protected function selectOne($criteria)
+    public function selectOne($criteria)
     {
         $stmt = $this->query->select($criteria);
 
