@@ -27,7 +27,7 @@ class Query
 
     private function getFrom(Criteria $criteria)
     {
-        return $criteria->dbName.'.'.$criteria->tableName;
+        return $criteria->dbName . '.' . $criteria->tableName;
     }
 
     private function getWhere(Criteria $criteria)
@@ -50,11 +50,11 @@ class Query
                     break;
                 case Criteria::IS_NOT_NULL:
                 case Criteria::IS_NULL:
-                    $placeholders[] = $column.' '.$comparison;
+                    $placeholders[] = $column . ' ' . $comparison;
                     break;
                 case Criteria::IN:
                 case Criteria::NOT_IN:
-                    $placeholders[] = $column.' '.$comparison.'('.$this->getPlaceholders(count((array)$value)).')';
+                    $placeholders[] = $column . ' ' . $comparison . '(' . $this->getPlaceholders(count((array)$value)) . ')';
                     $this->arguments = array_merge($this->arguments, (array)$value);
                     break;
                 default:
@@ -67,12 +67,21 @@ class Query
                             )
                         );
                     }
-                    $placeholders[] = $column.$comparison.'?';
+                    $placeholders[] = $column . $comparison . '?';
                     $this->arguments[] = $value;
             }
         }
 
         return implode(' AND ', $placeholders);
+    }
+
+    public function count(Criteria $criteria)
+    {
+        $SQL = 'SELECT COUNT(*)'
+            . ' FROM ' . $this->getFrom($criteria)
+            . ' WHERE ' . $this->getWhere($criteria);
+
+        return $this->executeQuery($criteria->dbName, $SQL, $this->arguments);
     }
 
     /**
@@ -89,12 +98,12 @@ class Query
             $columns = implode(',', $criteria->fields);
         }
 
-        $SQL = 'SELECT '.$columns
-            .' FROM '.$this->getFrom($criteria)
-            .' WHERE '.$this->getWhere($criteria);
+        $SQL = 'SELECT ' . $columns
+            . ' FROM ' . $this->getFrom($criteria)
+            . ' WHERE ' . $this->getWhere($criteria);
 
         if ($criteria->limit) {
-            $SQL .= ' LIMIT '.(int)$criteria->offset.','.(int)$criteria->limit;
+            $SQL .= ' LIMIT ' . (int)$criteria->offset . ',' . (int)$criteria->limit;
         }
 
         return $this->executeQuery($criteria->dbName, $SQL, $this->arguments);
@@ -114,11 +123,11 @@ class Query
             throw new QueryException('No fields for insert statement');
         }
 
-        $SQL = 'INSERT INTO '.$this->getFrom($criteria).'('.implode(',', $criteria->fields).')'
-            .' VALUES('.$this->getPlaceholders(count($criteria->fields)).')';
+        $SQL = 'INSERT INTO ' . $this->getFrom($criteria) . '(' . implode(',', $criteria->fields) . ')'
+            . ' VALUES(' . $this->getPlaceholders(count($criteria->fields)) . ')';
 
         if ($onDuplicateUpdate) {
-            $SQL .= ' ON DUPLICATE KEY UPDATE '.$this->getDuplicateUpdatedValues($onDuplicateUpdate);
+            $SQL .= ' ON DUPLICATE KEY UPDATE ' . $this->getDuplicateUpdatedValues($onDuplicateUpdate);
         }
 
         return $this->executeQuery($criteria->dbName, $SQL, $criteria->values);
@@ -134,7 +143,7 @@ class Query
     {
         $updates = [];
         foreach ((array)$columns as $column) {
-             $updates[] = $column.'=VALUES('.$column.')';
+            $updates[] = $column . '=VALUES(' . $column . ')';
         }
         return implode(',', $updates);
     }
@@ -142,12 +151,13 @@ class Query
     /**
      * Run the DELETE query
      *
+     * @param Criteria $criteria
      * @return \PDOStatement
      * @throws QueryException
      */
     public function delete(Criteria $criteria)
     {
-        $SQL = 'DELETE FROM '.$this->getFrom($criteria).' WHERE '.$this->getWhere($criteria);
+        $SQL = 'DELETE FROM ' . $this->getFrom($criteria) . ' WHERE ' . $this->getWhere($criteria);
 
         return $this->executeQuery($criteria->dbName, $SQL, $this->arguments);
     }
@@ -161,7 +171,7 @@ class Query
     public function update(Criteria $criteria)
     {
         return $this->executeUpdate($criteria, function ($fields) {
-            return implode('=?,', $fields).'=?';
+            return implode('=?,', $fields) . '=?';
         });
     }
 
@@ -177,7 +187,7 @@ class Query
             $placeholders = [];
 
             foreach ($fields as $field) {
-                $placeholders[] = $field.'='.$field.'+(?)';
+                $placeholders[] = $field . '=' . $field . '+(?)';
             }
 
             return implode(',', $placeholders);
@@ -190,9 +200,9 @@ class Query
             throw new QueryException('No fields for update statement');
         }
 
-        $SQL = 'UPDATE '.$this->getFrom($criteria)
-            .' SET '.call_user_func($placeholdersGenerator, $criteria->fields)
-            .' WHERE '.$this->getWhere($criteria);
+        $SQL = 'UPDATE ' . $this->getFrom($criteria)
+            . ' SET ' . call_user_func($placeholdersGenerator, $criteria->fields)
+            . ' WHERE ' . $this->getWhere($criteria);
 
         return $this->executeQuery(
             $criteria->dbName,
@@ -222,6 +232,11 @@ class Query
         } while (true);
     }
 
+    public function getConnection($dbName)
+    {
+        return $this->pool->connect($dbName);
+    }
+
     /**
      * Prevent query exception
      *
@@ -239,7 +254,8 @@ class Query
                 if (!$force) {
                     return true;
                 }
-            default: throw $e;
+            default:
+                throw $e;
         }
     }
 

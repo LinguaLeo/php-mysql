@@ -31,6 +31,21 @@ class Peer
         return new Criteria($this->schemaName, $this->tableName);
     }
 
+    /**
+     * @param Criteria $criteria
+     * @return int
+     */
+    protected function selectCount($criteria)
+    {
+        $stmt =  $this->query->count($criteria);
+
+        $result = $stmt->fetchColumn();
+
+        $stmt->closeCursor();
+
+        return $result;
+    }
+
     protected function selectKeyValue($criteria)
     {
         $stmt = $this->query->select($criteria);
@@ -46,6 +61,10 @@ class Peer
         return $result;
     }
 
+    /**
+     * @param Criteria $criteria
+     * @return array|false
+     */
     protected function selectOne($criteria)
     {
         $stmt = $this->query->select($criteria);
@@ -127,5 +146,13 @@ class Peer
     protected function insert($criteria, $onDuplicateUpdate = [])
     {
         return $this->getAffectedRows($this->query->insert($criteria, $onDuplicateUpdate));
+    }
+
+    /**
+     * @return string
+     */
+    protected function getLastInsertId()
+    {
+        return $this->query->getConnection($this->schemaName)->lastInsertId();
     }
 }
