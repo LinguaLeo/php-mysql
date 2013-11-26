@@ -17,7 +17,11 @@ class PeerTest extends \PHPUnit_Framework_TestCase
 
         // WHEN
         $peer = new Peer($queryMock, 'dbName', 'tableName');
-        $peer->selectOne($criteriaMock);
+
+        $method = new \ReflectionMethod('\LinguaLeo\MySQL\Peer', 'selectOne');
+        $method->setAccessible(TRUE);
+
+        $row = $method->invoke($peer, $criteriaMock);
 
         // THEN
         // exception will be thrown
@@ -34,7 +38,11 @@ class PeerTest extends \PHPUnit_Framework_TestCase
 
         // WHEN
         $peer = new Peer($queryMock, 'dbName', 'tableName');
-        $row = $peer->selectOne($criteriaMock);
+
+        $method = new \ReflectionMethod('\LinguaLeo\MySQL\Peer', 'selectOne');
+        $method->setAccessible(TRUE);
+
+        $row = $method->invoke($peer, $criteriaMock);
 
         // THEN
         $this->assertSame($sampleRow, $row);

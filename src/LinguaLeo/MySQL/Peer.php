@@ -35,12 +35,17 @@ class Peer
 
     /**
      * @param Criteria $criteria
-     * @return bool
+     * @return int
      */
     protected function selectCount($criteria)
     {
-        $criteria->read(['COUNT (*) as CNT']);
-        return $this->selectValue($criteria, 'CNT');
+        $stmt =  $this->query->count($criteria);
+
+        $result = $stmt->fetchColumn();
+
+        $stmt->closeCursor();
+
+        return $result;
     }
 
     protected function selectKeyValue($criteria)
@@ -63,7 +68,7 @@ class Peer
      * @return array
      * @throws Exception\MysqlNotFoundException
      */
-    public function selectOne($criteria)
+    protected function selectOne($criteria)
     {
         $stmt = $this->query->select($criteria);
 
