@@ -63,8 +63,7 @@ class Peer
 
     /**
      * @param Criteria $criteria
-     * @return array
-     * @throws Exception\MysqlNotFoundException
+     * @return array|false
      */
     protected function selectOne($criteria)
     {
