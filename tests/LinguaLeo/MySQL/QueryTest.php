@@ -275,4 +275,16 @@ class QueryTest extends \PHPUnit_Framework_TestCase
 
         $this->query->delete($this->criteria);
     }
+
+    public function testCount()
+    {
+        $this->assertSQL(
+            'SELECT COUNT(*) FROM test.trololo WHERE foo=?',
+            [1]
+        );
+
+        $this->criteria->where('foo', 1);
+
+        $this->query->count($this->criteria);
+    }
 }

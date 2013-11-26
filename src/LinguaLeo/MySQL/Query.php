@@ -77,10 +77,7 @@ class Query
 
     public function count(Criteria $criteria)
     {
-        $SQL = 'SELECT COUNT(*)'
-            . ' FROM ' . $this->getFrom($criteria)
-            . ' WHERE ' . $this->getWhere($criteria);
-
+        $SQL = 'SELECT COUNT(*) FROM ' . $this->getFrom($criteria) . ' WHERE ' . $this->getWhere($criteria);
         return $this->executeQuery($criteria->dbName, $SQL, $this->arguments);
     }
 
@@ -158,7 +155,6 @@ class Query
     public function delete(Criteria $criteria)
     {
         $SQL = 'DELETE FROM ' . $this->getFrom($criteria) . ' WHERE ' . $this->getWhere($criteria);
-
         return $this->executeQuery($criteria->dbName, $SQL, $this->arguments);
     }
 
@@ -211,7 +207,6 @@ class Query
         );
     }
 
-
     /**
      * Executes the query with parameters
      *
@@ -230,11 +225,6 @@ class Query
                 $force = $this->hideQueryException($e, $force);
             }
         } while (true);
-    }
-
-    public function getConnection($dbName)
-    {
-        return $this->pool->connect($dbName);
     }
 
     /**
@@ -277,5 +267,16 @@ class Query
         }
 
         return $stmt;
+    }
+
+    /**
+     * Returns connection for database
+     *
+     * @param string $dbName
+     * @return Connection
+     */
+    public function getConnection($dbName)
+    {
+        return $this->pool->connect($dbName);
     }
 }

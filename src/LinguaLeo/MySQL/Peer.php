@@ -31,33 +31,22 @@ class Peer
         return new Criteria($this->schemaName, $this->tableName);
     }
 
-    /**
-     * @param Criteria $criteria
-     * @return int
-     */
     protected function selectCount($criteria)
     {
         $stmt =  $this->query->count($criteria);
-
         $result = $stmt->fetchColumn();
-
         $stmt->closeCursor();
-
-        return $result;
+        return (int) $result;
     }
 
     protected function selectKeyValue($criteria)
     {
         $stmt = $this->query->select($criteria);
-
         $result = [];
-
         while ($row = $stmt->fetch(\PDO::FETCH_NUM)) {
             $result[$row[0]] = $row[1];
         }
-
         $stmt->closeCursor();
-
         return $result;
     }
 
@@ -68,50 +57,38 @@ class Peer
     protected function selectOne($criteria)
     {
         $stmt = $this->query->select($criteria);
-
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-
         $stmt->closeCursor();
-
         return $row;
     }
 
     protected function selectValue($criteria, $column)
     {
         $row = $this->selectOne($criteria);
-
         if (isset($row[$column])) {
             return $row[$column];
         }
-
         return false;
     }
 
     protected function selectMany($criteria, $style = \PDO::FETCH_ASSOC)
     {
         $stmt = $this->query->select($criteria);
-
         $items = $stmt->fetchAll($style);
-
         $stmt->closeCursor();
-
         return $items;
     }
 
     protected function selectTable($criteria)
     {
         $stmt = $this->query->select($criteria);
-
         $table = [];
-
         while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
             foreach ($row as $column => $value) {
                 $table[$column][] = $value;
             }
         }
-
         $stmt->closeCursor();
-
         return $table;
     }
 
@@ -120,11 +97,8 @@ class Peer
         if (!$stmt) {
             return 0;
         }
-
         $affected = $stmt->rowCount();
-
         $stmt->closeCursor();
-
         return $affected;
     }
 
@@ -148,9 +122,6 @@ class Peer
         return $this->getAffectedRows($this->query->insert($criteria, $onDuplicateUpdate));
     }
 
-    /**
-     * @return string
-     */
     protected function getLastInsertId()
     {
         return $this->query->getConnection($this->schemaName)->lastInsertId();
