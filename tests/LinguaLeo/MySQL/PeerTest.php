@@ -4,30 +4,6 @@ namespace LinguaLeo\MySQL;
 
 class PeerTest extends \PHPUnit_Framework_TestCase
 {
-
-    /**
-     * @expectedException \LinguaLeo\MySQL\Exception\MysqlNotFoundException
-     */
-    public function testSelectOneException()
-    {
-        // GIVEN
-        $pdoStatementMock = $this->getPDOStatementMock(false);
-        $queryMock = $this->getQueryMock($pdoStatementMock);
-        $criteriaMock = $this->getCriteriaMock();
-
-        // WHEN
-        $peer = new Peer($queryMock, 'dbName', 'tableName');
-
-        $method = new \ReflectionMethod('\LinguaLeo\MySQL\Peer', 'selectOne');
-        $method->setAccessible(TRUE);
-
-        $row = $method->invoke($peer, $criteriaMock);
-
-        // THEN
-        // exception will be thrown
-
-    }
-
     public function testSelectOne()
     {
         // GIVEN

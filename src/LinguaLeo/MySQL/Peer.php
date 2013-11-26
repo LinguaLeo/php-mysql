@@ -2,8 +2,6 @@
 
 namespace LinguaLeo\MySQL;
 
-use LinguaLeo\MySQL\Exception\MysqlNotFoundException;
-
 class Peer
 {
     /**
@@ -75,10 +73,6 @@ class Peer
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         $stmt->closeCursor();
-
-        if (false === $row) {
-            throw new MysqlNotFoundException();
-        }
 
         return $row;
     }
