@@ -20,9 +20,9 @@ class Query
         $this->pool = $pool;
     }
 
-    private function getPlaceholders($count)
+    private function getPlaceholders($count, $placeHolder = '?')
     {
-        return implode(',', array_fill(0, $count, '?'));
+        return implode(',', array_fill(0, $count, $placeHolder));
     }
 
     private function getFrom(Criteria $criteria)
@@ -131,6 +131,57 @@ class Query
         }
 
         return $this->executeQuery($criteria->dbName, $SQL, $criteria->values);
+    }
+
+    /**
+     * Run multi-insert query
+     *
+     * @param Criteria[] $criteriaList
+     * @param array $onDuplicateUpdate
+     * @return \PDOStatement
+     * @throws Exception\QueryException
+     */
+    public function multiInsert($criteriaList, $onDuplicateUpdate = [])
+    {
+        if (empty($criteriaList)) {
+            throw new QueryException('Criteria list cannot be empty');
+        }
+
+        /* @var Criteria $checkCriteria */
+        $checkCriteria = reset($criteriaList);
+        if (!($checkCriteria instanceof Criteria)) {
+            throw new QueryException('Criteria list must be array of Criteria');
+        }
+
+        $fields = $checkCriteria->fields;
+        $from = $this->getFrom($checkCriteria);
+
+        if (empty($fields)) {
+            throw new QueryException('No fields for insert statement');
+        }
+
+        $SQL = 'INSERT INTO ' . $from . '(' . implode(',', $fields) . ') VALUES';
+        $values = [];
+
+        foreach ($criteriaList as $criteria) {
+            if (!($criteria instanceof Criteria)) {
+                throw new QueryException('Criteria list must be array of Criteria');
+            }
+
+            if ($fields != $criteria->fields || $from != $this->getFrom($criteria)) {
+                throw new QueryException('Criteria list must have same from and field list');
+            }
+
+            $values = array_merge($values, $criteria->values);
+        }
+
+        $SQL .= $this->getPlaceholders(count($criteriaList), '(' . $this->getPlaceholders(count($fields)) . ')');
+
+        if ($onDuplicateUpdate) {
+            $SQL .= ' ON DUPLICATE KEY UPDATE ' . $this->getDuplicateUpdatedValues($onDuplicateUpdate);
+        }
+
+        return $this->executeQuery($checkCriteria->dbName, $SQL, $values);
     }
 
     /**
