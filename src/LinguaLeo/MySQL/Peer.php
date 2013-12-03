@@ -124,6 +124,6 @@ class Peer
 
     protected function getLastInsertId()
     {
-        return $this->query->getConnection($this->schemaName)->lastInsertId();
+        return $this->query->getLastInsertId($this->getNewCriteria());
     }
 }

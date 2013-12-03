@@ -190,7 +190,7 @@ class Query
         });
     }
 
-    private function executeUpdate(Criteria $criteria, $placeholdersGenerator)
+    private function executeUpdate(Criteria $criteria, callable $placeholdersGenerator)
     {
         if (!$criteria->fields) {
             throw new QueryException('No fields for update statement');
@@ -270,13 +270,13 @@ class Query
     }
 
     /**
-     * Returns connection for database
+     * Returns last inserted identifier
      *
-     * @param string $dbName
-     * @return Connection
+     * @param \LinguaLeo\MySQL\Criteria $criteria
+     * @return string
      */
-    public function getConnection($dbName)
+    public function getLastInsertId(Criteria $criteria)
     {
-        return $this->pool->connect($dbName);
+        return $this->pool->connect($criteria->dbName)->lastInsertId();
     }
 }
