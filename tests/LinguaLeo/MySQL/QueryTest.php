@@ -9,7 +9,7 @@ class QueryTest extends \PHPUnit_Framework_TestCase
      */
     protected $query;
 
-    /*
+    /**
      * @var Criteria
      */
     protected $criteria;
@@ -194,7 +194,10 @@ class QueryTest extends \PHPUnit_Framework_TestCase
         return [
             [[]],
             [new \stdClass()],
-            [function () {}]
+            [
+                function () {
+                }
+            ]
         ];
     }
 
@@ -256,6 +259,111 @@ class QueryTest extends \PHPUnit_Framework_TestCase
     {
         $this->query->insert($this->criteria);
     }
+
+    public function testMultiInsert()
+    {
+        $this->assertSQL(
+            'INSERT INTO test.trololo(foo,bar,baz) VALUES(?,?,?),(?,?,?) ON DUPLICATE KEY UPDATE foo=VALUES(foo),baz=VALUES(baz)',
+            [1, -2, 3, 4, 5, 6]
+        );
+
+        $criteriaOne = clone $this->criteria;
+        $criteriaOne->write(['foo' => 1, 'bar' => -2, 'baz' => 3]);
+        $criteriaTwo = clone $this->criteria;
+        $criteriaTwo->write(['foo' => 4, 'bar' => 5, 'baz' => 6]);
+
+        $this->query->multiInsert([$criteriaOne, $criteriaTwo], ['foo', 'baz']);
+    }
+
+    public function testMultiInsertWithout()
+    {
+        $this->assertSQL(
+            'INSERT INTO test.trololo(foo,bar,baz) VALUES(?,?,?),(?,?,?)',
+            [1, -2, 3, 4, 5, 6]
+        );
+
+        $criteriaOne = clone $this->criteria;
+        $criteriaOne->write(['foo' => 1, 'bar' => -2, 'baz' => 3]);
+        $criteriaTwo = clone $this->criteria;
+        $criteriaTwo->write(['foo' => 4, 'bar' => 5, 'baz' => 6]);
+
+        $this->query->multiInsert([$criteriaOne, $criteriaTwo]);
+    }
+
+
+    /**
+     * @expectedException \LinguaLeo\MySQL\Exception\QueryException
+     * @expectedExceptionMessage Criteria list cannot be empty
+     */
+    public function testMultiInsertEmptyException()
+    {
+        $this->query->multiInsert([], ['foo', 'baz']);
+    }
+
+    /**
+     * @dataProvider dataProviderMultiInsertWrongClassException
+     * @expectedException \LinguaLeo\MySQL\Exception\QueryException
+     * @expectedExceptionMessage Criteria list must be array of Criteria
+     */
+    public function testMultiInsertWrongClassException($criteriaList)
+    {
+        $this->query->multiInsert($criteriaList, ['foo', 'baz']);
+    }
+
+    public function dataProviderMultiInsertWrongClassException()
+    {
+        $okCriteria = new Criteria('dbName', 'table');
+        $okCriteria->write(['foo' => 4, 'bar' => 5, 'baz' => 6]);
+        return [
+            [[new \stdClass(), new \stdClass()]],
+            [[$okCriteria, new \stdClass()]],
+        ];
+    }
+
+    /**
+     * @expectedException \LinguaLeo\MySQL\Exception\QueryException
+     * @expectedExceptionMessage No fields for insert statement
+     */
+    public function testMultiInsertEmptyFieldException()
+    {
+        $this->query->multiInsert([$this->criteria], ['foo', 'baz']);
+    }
+
+    /**
+     * @dataProvider dataProviderMultiInsertDifferentCriteriaException
+     * @expectedException \LinguaLeo\MySQL\Exception\QueryException
+     * @expectedExceptionMessage Criteria list must have same from and field list
+     */
+    public function testMultiInsertDifferentCriteriaException($criteiaList)
+    {
+        $this->query->multiInsert($criteiaList, ['foo', 'baz']);
+    }
+
+    public function dataProviderMultiInsertDifferentCriteriaException()
+    {
+        $criteria1 = new Criteria('dbName', 'table');
+        $criteria1->write(['foo' => 1, 'bar' => 2]);
+
+        $criteria2 = clone $criteria1;
+        $criteria2->write(['foo' => 3, 'baz' => 4]);
+
+        $criteria3 = clone $criteria1;
+        $criteria3->write(['foo' => 5, 'bar' => 6, 'baz' => 7]);
+
+        $criteria4 = new Criteria($criteria1->dbName, 'tableOther');
+        $criteria4->write(['foo' => 1, 'bar' => 2]);
+
+        $criteria5 = new Criteria('dbNameOther', $criteria1->tableName);
+        $criteria5->write(['foo' => 1, 'bar' => 2]);
+
+        return [
+            [[$criteria1, $criteria2]],
+            [[$criteria1, $criteria3]],
+            [[$criteria1, $criteria4]],
+            [[$criteria1, $criteria5]]
+        ];
+    }
+
 
     public function testDelete()
     {

@@ -37,7 +37,7 @@ class Peer
      */
     protected function selectCount($criteria)
     {
-        $stmt =  $this->query->count($criteria);
+        $stmt = $this->query->count($criteria);
 
         $result = $stmt->fetchColumn();
 
@@ -146,6 +146,41 @@ class Peer
     protected function insert($criteria, $onDuplicateUpdate = [])
     {
         return $this->getAffectedRows($this->query->insert($criteria, $onDuplicateUpdate));
+    }
+
+    protected function multiInsertCriteriaList($criteriaList, $onDuplicateUpdate = [])
+    {
+        return $this->getAffectedRows($this->query->multiInsert($criteriaList, $onDuplicateUpdate));
+    }
+
+    protected function multiInsertAssoc($assocValues, $onDuplicateUpdate = [])
+    {
+        $criteriaList = [];
+        foreach ($assocValues as $values) {
+            $criteria = $this->getNewCriteria();
+            $criteria->write($values);
+
+            $criteriaList[] = $criteria;
+        }
+        return $this->multiInsertCriteriaList($criteriaList, $onDuplicateUpdate);
+    }
+
+    protected function multiInsertValues($fields, $valuesArray, $onDuplicateUpdate = [])
+    {
+        $criteriaList = [];
+        $countFields = count($fields);
+
+        foreach ($valuesArray as $values) {
+            if (count($values) != $countFields) {
+                throw new \Exception('Count of fields and values does not match');
+            }
+
+            $criteria = $this->getNewCriteria();
+            $criteria->write(array_combine($fields, $values));
+
+            $criteriaList[] = $criteria;
+        }
+        return $this->multiInsertCriteriaList($criteriaList, $onDuplicateUpdate);
     }
 
     /**
