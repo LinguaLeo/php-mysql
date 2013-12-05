@@ -218,9 +218,28 @@ class QueryTest extends \PHPUnit_Framework_TestCase
 
     public function testInsertRow()
     {
-        $this->assertSQL('INSERT INTO test.trololo(foo,bar) VALUES(?,?)', [1, -2]);
+        $this->assertSQL('INSERT INTO test.trololo(foo,bar) VALUES (?,?)', [1, -2]);
 
         $this->criteria->write(['foo' => 1, 'bar' => -2]);
+
+        $this->query->insert($this->criteria);
+    }
+
+    public function testMultiInsertRow()
+    {
+        $this->assertSQL('INSERT INTO test.trololo(foo,bar) VALUES (?,?),(?,?)', [1, -2, 2, 3]);
+
+        $this->criteria->write(['foo' => [1, 2], 'bar' => [-2, 3]]);
+
+        $this->query->insert($this->criteria);
+    }
+
+    /**
+     * @expectedException \LinguaLeo\MySQL\Exception\QueryException
+     */
+    public function testWrongValuesCountForMultiInsertRow()
+    {
+        $this->criteria->write(['foo' => [1, 2], 'bar' => -2]);
 
         $this->query->insert($this->criteria);
     }
@@ -228,7 +247,7 @@ class QueryTest extends \PHPUnit_Framework_TestCase
     public function testInsertRowOnDuplicate()
     {
         $this->assertSQL(
-            'INSERT INTO test.trololo(foo,bar) VALUES(?,?) ON DUPLICATE KEY UPDATE foo=VALUES(foo)',
+            'INSERT INTO test.trololo(foo,bar) VALUES (?,?) ON DUPLICATE KEY UPDATE foo=VALUES(foo)',
             [1, -2]
         );
 
@@ -240,7 +259,7 @@ class QueryTest extends \PHPUnit_Framework_TestCase
     public function testInsertRowOnDuplicateTwoColumns()
     {
         $this->assertSQL(
-            'INSERT INTO test.trololo(foo,bar,baz) VALUES(?,?,?) ON DUPLICATE KEY UPDATE foo=VALUES(foo),baz=VALUES(baz)',
+            'INSERT INTO test.trololo(foo,bar,baz) VALUES (?,?,?) ON DUPLICATE KEY UPDATE foo=VALUES(foo),baz=VALUES(baz)',
             [1, -2, 3]
         );
 

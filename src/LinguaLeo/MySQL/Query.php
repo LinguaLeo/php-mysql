@@ -20,9 +20,9 @@ class Query
         $this->pool = $pool;
     }
 
-    private function getPlaceholders($count)
+    private function getPlaceholders($count, $placeholder = '?')
     {
-        return implode(',', array_fill(0, $count, '?'));
+        return implode(',', array_fill(0, $count, $placeholder));
     }
 
     private function getFrom(Criteria $criteria)
@@ -120,14 +120,39 @@ class Query
             throw new QueryException('No fields for insert statement');
         }
 
-        $SQL = 'INSERT INTO ' . $this->getFrom($criteria) . '(' . implode(',', $criteria->fields) . ')'
-            . ' VALUES(' . $this->getPlaceholders(count($criteria->fields)) . ')';
+        $SQL = 'INSERT INTO ' . $this->getFrom($criteria) .
+            '(' . implode(',', $criteria->fields) . ') VALUES ' . $this->getValuesPlaceholders($criteria);
 
         if ($onDuplicateUpdate) {
             $SQL .= ' ON DUPLICATE KEY UPDATE ' . $this->getDuplicateUpdatedValues($onDuplicateUpdate);
         }
 
-        return $this->executeQuery($criteria->dbName, $SQL, $criteria->values);
+        return $this->executeQuery($criteria->dbName, $SQL, $this->arguments);
+    }
+
+    /**
+     * Generate VALUES part of INSERT query
+     *
+     * @param Criteria $criteria
+     * @return string
+     * @throws QueryException
+     */
+    private function getValuesPlaceholders(Criteria $criteria)
+    {
+        $this->arguments = [];
+        $columnsCount = count($criteria->fields);
+        $rowsCount = null;
+        foreach ($criteria->values as $columnIndex => $column) {
+            foreach ((array)$column as $rowIndex => $value) {
+                $this->arguments[$columnIndex + $rowIndex * $columnsCount] = $value;
+            }
+            if (null === $rowsCount) {
+                $rowsCount = $rowIndex + 1;
+            } elseif ($rowsCount !== $rowIndex + 1) {
+                throw new QueryException(sprintf('Wrong rows count in %d column for multi insert query', $columnIndex));
+            }
+        }
+        return $this->getPlaceholders($rowsCount, '('.$this->getPlaceholders($columnsCount).')');
     }
 
     /**
