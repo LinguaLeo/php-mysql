@@ -70,39 +70,39 @@ class CriteriaTest extends \PHPUnit_Framework_TestCase
         $this->assertSame([3, 4], $this->criteria->values);
     }
 
-    public function testAppendOne()
+    public function testWritePipeOne()
     {
-        $this->criteria->append(['a' => 1, 'b' => 2]);
+        $this->criteria->writePipe(['a' => 1, 'b' => 2]);
         $this->assertSame(['a', 'b'], $this->criteria->fields);
         $this->assertSame([1, 2], $this->criteria->values);
     }
 
-    public function testAppendMany()
+    public function testWritePipeMany()
     {
         $this->criteria
-            ->append(['a' => 1, 'b' => 2])
-            ->append(['a' => 3, 'b' => 4])
-            ->append(['a' => 5, 'b' => 6]);
+            ->writePipe(['a' => 1, 'b' => 2])
+            ->writePipe(['a' => 3, 'b' => 4])
+            ->writePipe(['a' => 5, 'b' => 6]);
 
         $this->assertSame(['a', 'b'], $this->criteria->fields);
         $this->assertSame([[1,3,5], [2,4,6]], $this->criteria->values);
     }
 
-    public function testAppendDefinedFields()
+    public function testWritePipeDefinedFields()
     {
         $this->criteria
-            ->append(['a' => 1, 'b' => 2])
-            ->append(['a' => 3, 'b' => 4, 'c' => 3]);
+            ->writePipe(['a' => 1, 'b' => 2])
+            ->writePipe(['a' => 3, 'b' => 4, 'c' => 3]);
 
         $this->assertSame(['a', 'b'], $this->criteria->fields);
         $this->assertSame([[1,3], [2,4]], $this->criteria->values);
     }
 
-    public function testAppendDefinedFieldsAsNullable()
+    public function testWritePipeDefinedFieldsAsNullable()
     {
         $this->criteria
-            ->append(['a' => 1, 'b' => 2])
-            ->append(['a' => 3, 'b' => null]);
+            ->writePipe(['a' => 1, 'b' => 2])
+            ->writePipe(['a' => 3, 'b' => null]);
 
         $this->assertSame(['a', 'b'], $this->criteria->fields);
         $this->assertSame([[1,3], [2,null]], $this->criteria->values);
@@ -111,10 +111,10 @@ class CriteriaTest extends \PHPUnit_Framework_TestCase
     /**
      * @expectedException \LinguaLeo\MySQL\Exception\CriteriaException
      */
-    public function testAppendUndefinedFields()
+    public function testWritePipeUndefinedFields()
     {
         $this->criteria
-            ->append(['a' => 1, 'b' => 2, 'c' => 3])
-            ->append(['a' => 4, 'b' => 5]);
+            ->writePipe(['a' => 1, 'b' => 2, 'c' => 3])
+            ->writePipe(['a' => 4, 'b' => 5]);
     }
 }

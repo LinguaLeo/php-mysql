@@ -58,7 +58,7 @@ class Criteria
         return $this;
     }
 
-    public function append(array $values)
+    public function writePipe(array $values)
     {
         if (empty($this->fields)) {
             return $this->write($values);

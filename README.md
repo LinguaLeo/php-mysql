@@ -55,8 +55,8 @@ $criteria = new LinguaLeo\MySQL\Criteria('db_name1', 'table_name1');
 $criteria->write(['foo' => [1,3], 'bar' => [2,4]]);
 
 // or variant 2
-$criteria->append(['foo' => 1, 'bar' => 2]);
-$criteria->append(['foo' => 3, 'bar' => 4]);
+$criteria->writePipe(['foo' => 1, 'bar' => 2]);
+$criteria->writePipe(['foo' => 3, 'bar' => 4]);
 
 $query->insert($criteria);
 ```
