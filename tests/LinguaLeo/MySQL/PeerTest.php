@@ -26,14 +26,15 @@ class PeerTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @param $returnValue
+     * @param string $method
      * @return \PHPUnit_Framework_MockObject_MockObject
      */
-    protected function getPDOStatementMock($returnValue)
+    protected function getPDOStatementMock($returnValue, $method = 'fetch')
     {
         $pdoStatementMock = $this->getMock('PDOStatement');
         $pdoStatementMock
             ->expects($this->once())
-            ->method('fetch')
+            ->method($method)
             ->will($this->returnValue($returnValue));
 
         return $pdoStatementMock;
@@ -41,16 +42,17 @@ class PeerTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @param $pdoStatementMock
+     * @param string $method
      * @return \PHPUnit_Framework_MockObject_MockObject
      */
-    protected function getQueryMock($pdoStatementMock)
+    protected function getQueryMock($pdoStatementMock, $method = 'select')
     {
         $queryMock = $this->getMockBuilder('LinguaLeo\MySQL\Query')
             ->disableOriginalConstructor()
             ->getMock();
         $queryMock
             ->expects($this->once())
-            ->method('select')
+            ->method($method)
             ->will($this->returnValue($pdoStatementMock));
 
         return $queryMock;
@@ -67,4 +69,4 @@ class PeerTest extends \PHPUnit_Framework_TestCase
 
         return $criteriaMock;
     }
-} 
+}

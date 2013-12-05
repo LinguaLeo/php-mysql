@@ -20,9 +20,9 @@ class Query
         $this->pool = $pool;
     }
 
-    private function getPlaceholders($count)
+    private function getPlaceholders($count, $placeholder = '?')
     {
-        return implode(',', array_fill(0, $count, '?'));
+        return implode(',', array_fill(0, $count, $placeholder));
     }
 
     private function getFrom(Criteria $criteria)
@@ -77,10 +77,7 @@ class Query
 
     public function count(Criteria $criteria)
     {
-        $SQL = 'SELECT COUNT(*)'
-            . ' FROM ' . $this->getFrom($criteria)
-            . ' WHERE ' . $this->getWhere($criteria);
-
+        $SQL = 'SELECT COUNT(*) FROM ' . $this->getFrom($criteria) . ' WHERE ' . $this->getWhere($criteria);
         return $this->executeQuery($criteria->dbName, $SQL, $this->arguments);
     }
 
@@ -123,14 +120,39 @@ class Query
             throw new QueryException('No fields for insert statement');
         }
 
-        $SQL = 'INSERT INTO ' . $this->getFrom($criteria) . '(' . implode(',', $criteria->fields) . ')'
-            . ' VALUES(' . $this->getPlaceholders(count($criteria->fields)) . ')';
+        $SQL = 'INSERT INTO ' . $this->getFrom($criteria) .
+            '(' . implode(',', $criteria->fields) . ') VALUES ' . $this->getValuesPlaceholders($criteria);
 
         if ($onDuplicateUpdate) {
             $SQL .= ' ON DUPLICATE KEY UPDATE ' . $this->getDuplicateUpdatedValues($onDuplicateUpdate);
         }
 
-        return $this->executeQuery($criteria->dbName, $SQL, $criteria->values);
+        return $this->executeQuery($criteria->dbName, $SQL, $this->arguments);
+    }
+
+    /**
+     * Generate VALUES part of INSERT query
+     *
+     * @param Criteria $criteria
+     * @return string
+     * @throws QueryException
+     */
+    private function getValuesPlaceholders(Criteria $criteria)
+    {
+        $this->arguments = [];
+        $columnsCount = count($criteria->fields);
+        $rowsCount = null;
+        foreach ($criteria->values as $columnIndex => $column) {
+            foreach ((array)$column as $rowIndex => $value) {
+                $this->arguments[$columnIndex + $rowIndex * $columnsCount] = $value;
+            }
+            if (null === $rowsCount) {
+                $rowsCount = $rowIndex + 1;
+            } elseif ($rowsCount !== $rowIndex + 1) {
+                throw new QueryException(sprintf('Wrong rows count in %d column for multi insert query', $columnIndex));
+            }
+        }
+        return $this->getPlaceholders($rowsCount, '('.$this->getPlaceholders($columnsCount).')');
     }
 
     /**
@@ -158,7 +180,6 @@ class Query
     public function delete(Criteria $criteria)
     {
         $SQL = 'DELETE FROM ' . $this->getFrom($criteria) . ' WHERE ' . $this->getWhere($criteria);
-
         return $this->executeQuery($criteria->dbName, $SQL, $this->arguments);
     }
 
@@ -194,7 +215,7 @@ class Query
         });
     }
 
-    private function executeUpdate(Criteria $criteria, $placeholdersGenerator)
+    private function executeUpdate(Criteria $criteria, callable $placeholdersGenerator)
     {
         if (!$criteria->fields) {
             throw new QueryException('No fields for update statement');
@@ -210,7 +231,6 @@ class Query
             array_merge($criteria->values, $this->arguments)
         );
     }
-
 
     /**
      * Executes the query with parameters
@@ -230,11 +250,6 @@ class Query
                 $force = $this->hideQueryException($e, $force);
             }
         } while (true);
-    }
-
-    public function getConnection($dbName)
-    {
-        return $this->pool->connect($dbName);
     }
 
     /**
@@ -277,5 +292,16 @@ class Query
         }
 
         return $stmt;
+    }
+
+    /**
+     * Returns last inserted identifier
+     *
+     * @param \LinguaLeo\MySQL\Criteria $criteria
+     * @return string
+     */
+    public function getLastInsertId(Criteria $criteria)
+    {
+        return $this->pool->connect($criteria->dbName)->lastInsertId();
     }
 }

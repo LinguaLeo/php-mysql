@@ -2,6 +2,8 @@
 
 namespace LinguaLeo\MySQL;
 
+use LinguaLeo\MySQL\Exception\CriteriaException;
+
 class Criteria
 {
     const EQUAL = '=';
@@ -54,5 +56,25 @@ class Criteria
         $this->fields = array_keys($values);
         $this->values = array_values($values);
         return $this;
+    }
+
+    public function writePipe(array $values)
+    {
+        if (empty($this->fields)) {
+            return $this->write($values);
+        }
+        foreach ($this->fields as $index => $name) {
+            if (!array_key_exists($name, $values)) {
+                throw new CriteriaException(sprintf('The field %s not found in values', $name));
+            }
+            $this->castArray($this->values[$index])[] = $values[$name];
+        }
+        return $this;
+    }
+
+    private function &castArray(&$value)
+    {
+        $value = (array)$value;
+        return $value;
     }
 }

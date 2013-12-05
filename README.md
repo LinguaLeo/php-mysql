@@ -41,6 +41,26 @@ $query->insert($criteria);
 $query->insert($criteria, 'foo');
 ```
 
+Query: Insert (multi)
+---------------------
+
+```php
+$query = new LinguaLeo\MySQL\Query($pool);
+
+// INSERT INTO db_name1.table_name1(foo,bar) VALUES (1,2),(3,4)
+
+$criteria = new LinguaLeo\MySQL\Criteria('db_name1', 'table_name1');
+
+// variant 1
+$criteria->write(['foo' => [1,3], 'bar' => [2,4]]);
+
+// or variant 2
+$criteria->writePipe(['foo' => 1, 'bar' => 2]);
+$criteria->writePipe(['foo' => 3, 'bar' => 4]);
+
+$query->insert($criteria);
+```
+
 Query: Update
 -------------
 
