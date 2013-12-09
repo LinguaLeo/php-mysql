@@ -2,9 +2,11 @@
 
 namespace LinguaLeo\MySQL;
 
-use LinguaLeo\MySQL\Exception\QueryException;
+use LinguaLeo\DataQuery\Exception\QueryException;
+use LinguaLeo\DataQuery\Criteria;
+use LinguaLeo\DataQuery\QueryInterface;
 
-class Query
+class Query implements QueryInterface
 {
     private $pool;
 
@@ -30,6 +32,24 @@ class Query
         return $criteria->dbName . '.' . $criteria->tableName;
     }
 
+    private function getOrder($orderBy)
+    {
+        $keys = [];
+        foreach ((array)$orderBy as $field => $sortType) {
+            $keys[] = $field . ' ' . $this->convertSortType($sortType);
+        }
+        return implode(', ', $keys);
+    }
+
+    private function convertSortType($type)
+    {
+        switch ($type) {
+            case SORT_ASC: return 'ASC';
+            case SORT_DESC: return 'DESC';
+            default: throw new QueryException(sprintf('Unknown %s sort type', $type));
+        }
+    }
+
     private function getWhere(Criteria $criteria)
     {
         $this->arguments = [];
@@ -44,10 +64,6 @@ class Query
             list($column, $value, $comparison) = $condition;
 
             switch ($comparison) {
-                case Criteria::CUSTOM:
-                    $placeholders[] = $column;
-                    $this->arguments[] = $value;
-                    break;
                 case Criteria::IS_NOT_NULL:
                 case Criteria::IS_NULL:
                     $placeholders[] = $column . ' ' . $comparison;
@@ -75,59 +91,17 @@ class Query
         return implode(' AND ', $placeholders);
     }
 
-    public function count(Criteria $criteria)
+    private function getExpression($fields)
     {
-        $SQL = 'SELECT COUNT(*) FROM ' . $this->getFrom($criteria) . ' WHERE ' . $this->getWhere($criteria);
-        return $this->executeQuery($criteria->dbName, $SQL, $this->arguments);
-    }
-
-    /**
-     * Run the SELECT query
-     *
-     * @param Criteria $criteria
-     * @return \PDOStatement
-     */
-    public function select(Criteria $criteria)
-    {
-        if (empty($criteria->fields)) {
-            $columns = '*';
-        } else {
-            $columns = implode(',', $criteria->fields);
+        if (empty($fields)) {
+            return '*';
         }
-
-        $SQL = 'SELECT ' . $columns
-            . ' FROM ' . $this->getFrom($criteria)
-            . ' WHERE ' . $this->getWhere($criteria);
-
-        if ($criteria->limit) {
-            $SQL .= ' LIMIT ' . (int)$criteria->offset . ',' . (int)$criteria->limit;
+        foreach ($fields as $aggregate => &$field) {
+            if (is_string($aggregate)) {
+                $field = strtoupper($aggregate).'('.$field.')';
+            }
         }
-
-        return $this->executeQuery($criteria->dbName, $SQL, $this->arguments);
-    }
-
-    /**
-     * Run the INSERT query on single row
-     *
-     * @param Criteria $criteria
-     * @param array|string $onDuplicateUpdate
-     * @return \PDOStatement
-     * @throws QueryException
-     */
-    public function insert(Criteria $criteria, $onDuplicateUpdate = [])
-    {
-        if (empty($criteria->fields)) {
-            throw new QueryException('No fields for insert statement');
-        }
-
-        $SQL = 'INSERT INTO ' . $this->getFrom($criteria) .
-            '(' . implode(',', $criteria->fields) . ') VALUES ' . $this->getValuesPlaceholders($criteria);
-
-        if ($onDuplicateUpdate) {
-            $SQL .= ' ON DUPLICATE KEY UPDATE ' . $this->getDuplicateUpdatedValues($onDuplicateUpdate);
-        }
-
-        return $this->executeQuery($criteria->dbName, $SQL, $this->arguments);
+        return implode(',', $fields);
     }
 
     /**
@@ -171,11 +145,49 @@ class Query
     }
 
     /**
-     * Run the DELETE query
-     *
-     * @param Criteria $criteria
-     * @return \PDOStatement
-     * @throws QueryException
+     * {@inheritdoc}
+     */
+    public function select(Criteria $criteria)
+    {
+        $SQL = 'SELECT ' . $this->getExpression($criteria->fields)
+            . ' FROM ' . $this->getFrom($criteria)
+            . ' WHERE ' . $this->getWhere($criteria);
+
+        if ($criteria->orderBy) {
+            $SQL .= ' ORDER BY '. $this->getOrder($criteria->orderBy);
+        }
+
+        if ($criteria->limit) {
+            $SQL .= ' LIMIT ' . (int)$criteria->limit;
+            if ($criteria->offset) {
+                $SQL .= ' OFFSET ' . (int)$criteria->offset;
+            }
+        }
+
+        return $this->executeQuery($criteria->dbName, $SQL, $this->arguments);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function insert(Criteria $criteria)
+    {
+        if (empty($criteria->fields)) {
+            throw new QueryException('No fields for insert statement');
+        }
+
+        $SQL = 'INSERT INTO ' . $this->getFrom($criteria) .
+            '(' . implode(',', $criteria->fields) . ') VALUES ' . $this->getValuesPlaceholders($criteria);
+
+        if ($criteria->upsert) {
+            $SQL .= ' ON DUPLICATE KEY UPDATE ' . $this->getDuplicateUpdatedValues($criteria->upsert);
+        }
+
+        return $this->executeQuery($criteria->dbName, $SQL, $this->arguments);
+    }
+
+    /**
+     * {@inheritdoc}
      */
     public function delete(Criteria $criteria)
     {
@@ -184,10 +196,7 @@ class Query
     }
 
     /**
-     * Run the UPDATE query
-     *
-     * @param Criteria $criteria
-     * @return \PDOStatement
+     * {@inheritdoc}
      */
     public function update(Criteria $criteria)
     {
@@ -197,10 +206,7 @@ class Query
     }
 
     /**
-     * Increment the columns by UPDATE query
-     *
-     * @param Criteria $criteria
-     * @return \PDOStatement
+     * {@inheritdoc}
      */
     public function increment(Criteria $criteria)
     {
@@ -225,11 +231,7 @@ class Query
             . ' SET ' . call_user_func($placeholdersGenerator, $criteria->fields)
             . ' WHERE ' . $this->getWhere($criteria);
 
-        return $this->executeQuery(
-            $criteria->dbName,
-            $SQL,
-            array_merge($criteria->values, $this->arguments)
-        );
+        return $this->executeQuery($criteria->dbName, $SQL, array_merge($criteria->values, $this->arguments));
     }
 
     /**
@@ -238,14 +240,14 @@ class Query
      * @param string $dbName
      * @param string $query
      * @param array $params
-     * @return \PDOStatement
+     * @return \LinguaLeo\DataQuery\ResultInterface
      */
-    public function executeQuery($dbName, $query, $params = [])
+    protected function executeQuery($dbName, $query, $params = [])
     {
         $force = false;
         do {
             try {
-                return $this->getStatement($this->pool->connect($dbName, $force), $query, $params);
+                return $this->getResult($this->pool->connect($dbName, $force), $query, $params);
             } catch (\PDOException $e) {
                 $force = $this->hideQueryException($e, $force);
             }
@@ -280,9 +282,9 @@ class Query
      * @param Connection $conn
      * @param string $query
      * @param array $params
-     * @return \PDOStatement
+     * @return \LinguaLeo\DataQuery\ResultInterface
      */
-    protected function getStatement($conn, $query, $params)
+    private function getResult($conn, $query, $params)
     {
         if ($params) {
             $stmt = $conn->prepare($query);
@@ -290,18 +292,6 @@ class Query
         } else {
             $stmt = $conn->query($query);
         }
-
-        return $stmt;
-    }
-
-    /**
-     * Returns last inserted identifier
-     *
-     * @param \LinguaLeo\MySQL\Criteria $criteria
-     * @return string
-     */
-    public function getLastInsertId(Criteria $criteria)
-    {
-        return $this->pool->connect($criteria->dbName)->lastInsertId();
+        return new Result($stmt);
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace LinguaLeo\MySQL;
+namespace LinguaLeo\DataQuery;
 
 class CriteriaTest extends \PHPUnit_Framework_TestCase
 {
@@ -109,12 +109,25 @@ class CriteriaTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException \LinguaLeo\MySQL\Exception\CriteriaException
+     * @expectedException \LinguaLeo\DataQuery\Exception\CriteriaException
      */
     public function testWritePipeUndefinedFields()
     {
         $this->criteria
             ->writePipe(['a' => 1, 'b' => 2, 'c' => 3])
             ->writePipe(['a' => 4, 'b' => 5]);
+    }
+
+    public function testOrderBy()
+    {
+        $this->criteria->orderBy('a');
+        $this->criteria->orderBy('b', SORT_DESC);
+        $this->assertSame(['a' => SORT_ASC, 'b' => SORT_DESC], $this->criteria->orderBy);
+    }
+
+    public function testUpsert()
+    {
+        $this->criteria->upsert(['a']);
+        $this->assertSame(['a'], $this->criteria->upsert);
     }
 }

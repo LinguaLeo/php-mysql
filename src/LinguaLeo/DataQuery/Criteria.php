@@ -1,8 +1,8 @@
 <?php
 
-namespace LinguaLeo\MySQL;
+namespace LinguaLeo\DataQuery;
 
-use LinguaLeo\MySQL\Exception\CriteriaException;
+use LinguaLeo\DataQuery\Exception\CriteriaException;
 
 class Criteria
 {
@@ -14,7 +14,6 @@ class Criteria
     const LESS = '<';
     const IN = 'IN';
     const NOT_IN = 'NOT IN';
-    const CUSTOM = '#CUSTOM';
     const IS_NULL = 'IS NULL';
     const IS_NOT_NULL = 'IS NOT NULL';
 
@@ -25,6 +24,8 @@ class Criteria
     public $offset;
     public $fields;
     public $values;
+    public $orderBy;
+    public $upsert;
 
     public function __construct($dbName, $tableName)
     {
@@ -69,6 +70,18 @@ class Criteria
             }
             $this->castArray($this->values[$index])[] = $values[$name];
         }
+        return $this;
+    }
+
+    public function upsert(array $upsert)
+    {
+        $this->upsert = $upsert;
+        return $this;
+    }
+
+    public function orderBy($field, $sortType = SORT_ASC)
+    {
+        $this->orderBy[$field] = $sortType;
         return $this;
     }
 

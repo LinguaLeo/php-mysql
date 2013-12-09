@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit bootstrap="tests/bootstrap.php">
+<phpunit bootstrap="tests/bootstrap.php" colors="true">
 
     <testsuites>
-        <testsuite name="Unit Tests">
-            <directory>tests</directory>
+        <testsuite name="DataQuery">
+            <directory>tests/LinguaLeo/DataQuery</directory>
+        </testsuite>
+        <testsuite name="MySQL">
+            <directory>tests/LinguaLeo/MySQL</directory>
         </testsuite>
     </testsuites>
 

@@ -2,6 +2,8 @@
 
 namespace LinguaLeo\MySQL;
 
+use LinguaLeo\DataQuery\Criteria;
+
 class QueryTest extends \PHPUnit_Framework_TestCase
 {
     /**
@@ -29,13 +31,10 @@ class QueryTest extends \PHPUnit_Framework_TestCase
 
     private function assertSQL($query, $parameters = [])
     {
-        $stmt = $this->getMock('\PDOStatement', ['rowCount', 'closeCursor']);
-
         $this->query
             ->expects($this->once())
             ->method('executeQuery')
-            ->with('test', $query, $parameters)
-            ->will($this->returnValue($stmt));
+            ->with('test', $query, $parameters);
     }
 
     public function testFindAll()
@@ -65,7 +64,7 @@ class QueryTest extends \PHPUnit_Framework_TestCase
 
     public function testFindWithLimit()
     {
-        $this->assertSQL('SELECT * FROM test.trololo WHERE 1 LIMIT 0,1');
+        $this->assertSQL('SELECT * FROM test.trololo WHERE 1 LIMIT 1');
 
         $this->criteria->limit(1);
 
@@ -74,7 +73,7 @@ class QueryTest extends \PHPUnit_Framework_TestCase
 
     public function testFindWithLimitOffset()
     {
-        $this->assertSQL('SELECT * FROM test.trololo WHERE 1 LIMIT 2,1');
+        $this->assertSQL('SELECT * FROM test.trololo WHERE 1 LIMIT 1 OFFSET 2');
 
         $this->criteria->limit(1, 2);
 
@@ -134,18 +133,6 @@ class QueryTest extends \PHPUnit_Framework_TestCase
         $this->query->select($this->criteria);
     }
 
-    public function testFindAllWithCustomWhere()
-    {
-        $this->assertSQL(
-            'SELECT * FROM test.trololo WHERE a = b + (?)',
-            [1]
-        );
-
-        $this->criteria->where('a = b + (?)', 1, Criteria::CUSTOM);
-
-        $this->query->select($this->criteria);
-    }
-
     public function testFindAllIsNull()
     {
         $this->assertSQL('SELECT * FROM test.trololo WHERE a IS NULL');
@@ -164,7 +151,36 @@ class QueryTest extends \PHPUnit_Framework_TestCase
         $this->query->select($this->criteria);
     }
 
-    public function testUpdateValues()
+    public function testSelectWithMultiOrder()
+    {
+        $this->assertSQL('SELECT * FROM test.trololo WHERE 1 ORDER BY foo ASC, bar DESC');
+
+        $this->criteria->orderBy('foo');
+        $this->criteria->orderBy('bar', SORT_DESC);
+
+        $this->query->select($this->criteria);
+    }
+
+    public function testSelectWithOrderAndLimit()
+    {
+        $this->assertSQL('SELECT * FROM test.trololo WHERE 1 ORDER BY foo ASC LIMIT 100');
+
+        $this->criteria->limit(100);
+        $this->criteria->orderBy('foo', SORT_ASC);
+
+        $this->query->select($this->criteria);
+    }
+
+    /**
+     * @expectedException \LinguaLeo\DataQuery\Exception\QueryException
+     */
+    public function testUnknownOrderType()
+    {
+        $this->criteria->orderBy('foo', SORT_NATURAL);
+        $this->query->select($this->criteria);
+    }
+
+    public function testUpdateValue()
     {
         $this->assertSQL(
             'UPDATE test.trololo SET a=? WHERE 1',
@@ -200,7 +216,7 @@ class QueryTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @dataProvider provideNonScalarValue
-     * @expectedException \LinguaLeo\MySQL\Exception\QueryException
+     * @expectedException \LinguaLeo\DataQuery\Exception\QueryException
      */
     public function testNonScalarValueInCondition($value)
     {
@@ -209,7 +225,7 @@ class QueryTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException \LinguaLeo\MySQL\Exception\QueryException
+     * @expectedException \LinguaLeo\DataQuery\Exception\QueryException
      */
     public function testUpdateWithNoWriteDefinition()
     {
@@ -219,9 +235,7 @@ class QueryTest extends \PHPUnit_Framework_TestCase
     public function testInsertRow()
     {
         $this->assertSQL('INSERT INTO test.trololo(foo,bar) VALUES (?,?)', [1, -2]);
-
         $this->criteria->write(['foo' => 1, 'bar' => -2]);
-
         $this->query->insert($this->criteria);
     }
 
@@ -235,25 +249,13 @@ class QueryTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException \LinguaLeo\MySQL\Exception\QueryException
+     * @expectedException \LinguaLeo\DataQuery\Exception\QueryException
      */
     public function testWrongValuesCountForMultiInsertRow()
     {
         $this->criteria->write(['foo' => [1, 2], 'bar' => -2]);
 
         $this->query->insert($this->criteria);
-    }
-
-    public function testInsertRowOnDuplicate()
-    {
-        $this->assertSQL(
-            'INSERT INTO test.trololo(foo,bar) VALUES (?,?) ON DUPLICATE KEY UPDATE foo=VALUES(foo)',
-            [1, -2]
-        );
-
-        $this->criteria->write(['foo' => 1, 'bar' => -2]);
-
-        $this->query->insert($this->criteria, 'foo');
     }
 
     public function testInsertRowOnDuplicateTwoColumns()
@@ -264,12 +266,13 @@ class QueryTest extends \PHPUnit_Framework_TestCase
         );
 
         $this->criteria->write(['foo' => 1, 'bar' => -2, 'baz' => 3]);
+        $this->criteria->upsert(['foo', 'baz']);
 
-        $this->query->insert($this->criteria, ['foo', 'baz']);
+        $this->query->insert($this->criteria);
     }
 
     /**
-     * @expectedException \LinguaLeo\MySQL\Exception\QueryException
+     * @expectedException \LinguaLeo\DataQuery\Exception\QueryException
      */
     public function testInsertWithNoWrtieDefinition()
     {
@@ -295,15 +298,16 @@ class QueryTest extends \PHPUnit_Framework_TestCase
         $this->query->delete($this->criteria);
     }
 
-    public function testCount()
+    public function testAggregate()
     {
         $this->assertSQL(
-            'SELECT COUNT(*) FROM test.trololo WHERE foo=?',
+            'SELECT COUNT(*),SUM(bar),baz FROM test.trololo WHERE foo=?',
             [1]
         );
 
+        $this->criteria->read(['count' => '*', 'sum' => 'bar', 'baz']);
         $this->criteria->where('foo', 1);
 
-        $this->query->count($this->criteria);
+        $this->query->select($this->criteria);
     }
 }
