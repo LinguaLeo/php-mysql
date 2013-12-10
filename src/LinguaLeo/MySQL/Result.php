@@ -25,7 +25,6 @@ class Result implements ResultInterface
         while ($row = $this->stmt->fetch(\PDO::FETCH_NUM)) {
             $result[$row[0]] = $row[1];
         }
-        $this->stmt->closeCursor();
         return $result;
     }
 
@@ -34,9 +33,7 @@ class Result implements ResultInterface
      */
     public function many()
     {
-        $rows = $this->stmt->fetchAll(\PDO::FETCH_ASSOC);
-        $this->stmt->closeCursor();
-        return $rows;
+        return $this->stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     /**
@@ -44,9 +41,7 @@ class Result implements ResultInterface
      */
     public function one()
     {
-        $row = $this->stmt->fetch(\PDO::FETCH_ASSOC);
-        $this->stmt->closeCursor();
-        return $row;
+        return $this->stmt->fetch(\PDO::FETCH_ASSOC);
     }
 
     /**
@@ -60,7 +55,6 @@ class Result implements ResultInterface
                 $table[$column][] = $value;
             }
         }
-        $this->stmt->closeCursor();
         return $table;
     }
 
@@ -81,9 +75,7 @@ class Result implements ResultInterface
      */
     public function column($number)
     {
-        $column = $this->stmt->fetchColumn($number);
-        $this->stmt->closeCursor();
-        return $column;
+        return $this->stmt->fetchColumn($number);
     }
 
     /**
@@ -91,8 +83,6 @@ class Result implements ResultInterface
      */
     public function count()
     {
-        $count = $this->stmt->rowCount();
-        $this->stmt->closeCursor();
-        return $count;
+        return $this->stmt->rowCount();
     }
 }
