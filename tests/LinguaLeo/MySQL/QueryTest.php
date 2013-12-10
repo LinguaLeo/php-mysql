@@ -164,6 +164,35 @@ class QueryTest extends \PHPUnit_Framework_TestCase
         $this->query->select($this->criteria);
     }
 
+    public function testSelectWithMultiOrder()
+    {
+        $this->assertSQL('SELECT * FROM test.trololo WHERE 1 ORDER BY foo ASC, bar DESC');
+
+        $this->criteria->orderBy('foo');
+        $this->criteria->orderBy('bar', SORT_DESC);
+
+        $this->query->select($this->criteria);
+    }
+
+    public function testSelectWithOrderAndLimit()
+    {
+        $this->assertSQL('SELECT * FROM test.trololo WHERE 1 ORDER BY foo ASC LIMIT 0,100');
+
+        $this->criteria->limit(100);
+        $this->criteria->orderBy('foo', SORT_ASC);
+
+        $this->query->select($this->criteria);
+    }
+
+    /**
+     * @expectedException \LinguaLeo\MySQL\Exception\QueryException
+     */
+    public function testUnknownOrderType()
+    {
+        $this->criteria->orderBy('foo', SORT_NATURAL);
+        $this->query->select($this->criteria);
+    }
+
     public function testUpdateValues()
     {
         $this->assertSQL(

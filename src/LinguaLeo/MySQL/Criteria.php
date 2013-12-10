@@ -25,6 +25,7 @@ class Criteria
     public $offset;
     public $fields;
     public $values;
+    public $orderBy;
 
     public function __construct($dbName, $tableName)
     {
@@ -69,6 +70,12 @@ class Criteria
             }
             $this->castArray($this->values[$index])[] = $values[$name];
         }
+        return $this;
+    }
+
+    public function orderBy($field, $sortType = SORT_ASC)
+    {
+        $this->orderBy[$field] = $sortType;
         return $this;
     }
 

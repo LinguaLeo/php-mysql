@@ -30,6 +30,24 @@ class Query
         return $criteria->dbName . '.' . $criteria->tableName;
     }
 
+    private function getOrder($orderBy)
+    {
+        $keys = [];
+        foreach ((array)$orderBy as $field => $sortType) {
+            $keys[] = $field . ' ' . $this->convertSortType($sortType);
+        }
+        return implode(', ', $keys);
+    }
+
+    private function convertSortType($type)
+    {
+        switch ($type) {
+            case SORT_ASC: return 'ASC';
+            case SORT_DESC: return 'DESC';
+            default: throw new QueryException(sprintf('Unknown %s sort type', $type));
+        }
+    }
+
     private function getWhere(Criteria $criteria)
     {
         $this->arguments = [];
@@ -98,6 +116,10 @@ class Query
         $SQL = 'SELECT ' . $columns
             . ' FROM ' . $this->getFrom($criteria)
             . ' WHERE ' . $this->getWhere($criteria);
+
+        if ($criteria->orderBy) {
+            $SQL .= ' ORDER BY '. $this->getOrder($criteria->orderBy);
+        }
 
         if ($criteria->limit) {
             $SQL .= ' LIMIT ' . (int)$criteria->offset . ',' . (int)$criteria->limit;
