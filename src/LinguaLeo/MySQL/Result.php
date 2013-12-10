@@ -16,6 +16,11 @@ class Result implements ResultInterface
         $this->stmt = $stmt;
     }
 
+    public function __destruct()
+    {
+        $this->stmt->closeCursor();
+    }
+
     /**
      * {@inheritdoc}
      */
