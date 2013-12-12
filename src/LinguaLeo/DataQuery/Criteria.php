@@ -90,9 +90,6 @@ class Criteria
         if (is_array($value)) {
             return $value;
         }
-        if (is_scalar($value) || is_null($value)) {
-            return $value = [$value];
-        }
-        throw new CriteriaException(sprintf('Unknown data type %s for writable value', gettype($value)));
+        return $value = [$value];
     }
 }
