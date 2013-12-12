@@ -57,9 +57,9 @@ class CriteriaTest extends \PHPUnit_Framework_TestCase
 
     public function testWrite()
     {
-        $this->criteria->write(['a' => 1, 'b' => 2]);
+        $this->criteria->write(['a' => 1, 'b' => null]);
         $this->assertSame(['a', 'b'], $this->criteria->fields);
-        $this->assertSame([1, 2], $this->criteria->values);
+        $this->assertSame([1, null], $this->criteria->values);
     }
 
     public function testWriteReset()
@@ -101,11 +101,11 @@ class CriteriaTest extends \PHPUnit_Framework_TestCase
     public function testWritePipeDefinedFieldsAsNullable()
     {
         $this->criteria
-            ->writePipe(['a' => 1, 'b' => 2])
+            ->writePipe(['a' => null, 'b' => 2])
             ->writePipe(['a' => 3, 'b' => null]);
 
         $this->assertSame(['a', 'b'], $this->criteria->fields);
-        $this->assertSame([[1,3], [2,null]], $this->criteria->values);
+        $this->assertSame([[null,3], [2,null]], $this->criteria->values);
     }
 
     /**
