@@ -96,9 +96,9 @@ class Query implements QueryInterface
         if (empty($fields)) {
             return '*';
         }
-        foreach ($fields as $aggregate => &$field) {
-            if (is_string($aggregate)) {
-                $field = strtoupper($aggregate).'('.$field.')';
+        foreach ($fields as $field => &$aggregate) {
+            if (is_string($field)) {
+                $aggregate = strtoupper($aggregate).'('.$field.')';
             }
         }
         return implode(',', $fields);

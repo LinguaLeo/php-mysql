@@ -158,3 +158,18 @@ $criteria
 
 $query->select($criteria);
 ```
+
+Query: Select (aggregation)
+---------------------------
+
+```php
+$query = new LinguaLeo\MySQL\Query($pool);
+
+// SELECT COUNT(*), SUM(foo) FROM db_name1.table_name1
+
+$criteria = new LinguaLeo\DataQuery\Criteria('db_name1', 'table_name1');
+
+$criteria->read(['*' => 'count', 'foo' => 'sum']);
+
+$query->select($criteria);
+```

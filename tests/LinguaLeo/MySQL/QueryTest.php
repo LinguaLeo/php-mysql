@@ -305,7 +305,7 @@ class QueryTest extends \PHPUnit_Framework_TestCase
             [1]
         );
 
-        $this->criteria->read(['count' => '*', 'sum' => 'bar', 'baz']);
+        $this->criteria->read(['*' => 'count', 'bar' => 'sum', 'baz']);
         $this->criteria->where('foo', 1);
 
         $this->query->select($this->criteria);
