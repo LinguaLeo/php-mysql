@@ -34,20 +34,15 @@ class Query implements QueryInterface
 
     private function getOrder($orderBy)
     {
+        static $typesMap = [SORT_ASC => 'ASC', SORT_DESC => 'DESC'];
         $keys = [];
         foreach ((array)$orderBy as $field => $sortType) {
-            $keys[] = $field . ' ' . $this->convertSortType($sortType);
+            if (empty($typesMap[$sortType])) {
+                throw new QueryException(sprintf('Unknown %s sort type', $sortType));
+            }
+            $keys[] = $field . ' ' . $typesMap[$sortType];
         }
         return implode(', ', $keys);
-    }
-
-    private function convertSortType($type)
-    {
-        switch ($type) {
-            case SORT_ASC: return 'ASC';
-            case SORT_DESC: return 'DESC';
-            default: throw new QueryException(sprintf('Unknown %s sort type', $type));
-        }
     }
 
     private function getWhere(Criteria $criteria)
