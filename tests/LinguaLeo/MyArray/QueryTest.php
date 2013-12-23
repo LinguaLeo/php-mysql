@@ -35,7 +35,7 @@ class QueryTest extends \PHPUnit_Framework_TestCase
         $this->criteria->write(['foo' => 1, 'bar' => 2]);
 
         $this->assertCount(1, $this->query->insert($this->criteria));
-        $this->assertSame(['foo' => 1, 'bar' => 2], $this->query->table);
+        $this->assertSame(['foo' => [1], 'bar' => [2]], $this->query->table);
     }
 
     public function testTwoInserts()
@@ -44,14 +44,17 @@ class QueryTest extends \PHPUnit_Framework_TestCase
         $this->criteria->writePipe(['foo' => 3, 'bar' => 4]);
 
         $this->assertCount(2, $this->query->insert($this->criteria));
+        $this->assertSame(['foo' => [1, 3], 'bar' => [2, 4]], $this->query->table);
     }
 
     public function testTwoInsertQueries()
     {
         $this->criteria->write(['foo' => 1, 'bar' => 2]);
         $this->assertCount(1, $this->query->insert($this->criteria));
+        $this->assertSame(['foo' => [1], 'bar' => [2]], $this->query->table);
         $this->criteria->write(['foo' => 1, 'bar' => 2]);
         $this->assertCount(1, $this->query->insert($this->criteria));
+        $this->assertSame(['foo' => [1, 1], 'bar' => [2, 2]], $this->query->table);
     }
 
     /**
@@ -66,7 +69,9 @@ class QueryTest extends \PHPUnit_Framework_TestCase
 
     public function testDeleteAll()
     {
-        $this->assertCount(3, $this->getQueryMock()->delete($this->criteria));
+        $query = $this->getQueryMock();
+        $this->assertCount(3, $query->delete($this->criteria));
+        $this->assertEmpty($query->table);
     }
 
     /**
@@ -80,15 +85,19 @@ class QueryTest extends \PHPUnit_Framework_TestCase
 
     public function testDeleteByOneColumn()
     {
+        $query = $this->getQueryMock();
         $this->criteria->where('foo', 100);
-        $this->assertCount(1, $this->getQueryMock()->delete($this->criteria));
+        $this->assertCount(1, $query->delete($this->criteria));
+        $this->assertSame(['foo' => [1 => 300, 500], 'bar' => [1 => 400, 600]], $query->table);
     }
 
     public function testDeleteByGreaterCondition()
     {
+        $query = $this->getQueryMock();
         $this->criteria->where('foo', 100, Criteria::GREATER);
         $this->criteria->where('bar', 600, Criteria::LESS);
-        $this->assertCount(1, $this->getQueryMock()->delete($this->criteria));
+        $this->assertCount(1, $query->delete($this->criteria));
+        $this->assertSame(['foo' => [0 => 100, 2 => 500], 'bar' => [0 => 200, 2 => 600]], $query->table);
     }
 
     public function testDeleteOnEmptyTable()
@@ -99,9 +108,11 @@ class QueryTest extends \PHPUnit_Framework_TestCase
 
     public function testUpdate()
     {
+        $query = $this->getQueryMock();
         $this->criteria->write(['foo' => 1000, 'bar' => 2000]);
         $this->criteria->where('foo', 100);
-        $this->assertCount(1, $this->getQueryMock()->update($this->criteria));
+        $this->assertCount(1, $query->update($this->criteria));
+        $this->assertSame(['foo' => [1000, 300, 500], 'bar' => [2000, 400, 600]], $query->table);
     }
 
     /**
@@ -130,8 +141,10 @@ class QueryTest extends \PHPUnit_Framework_TestCase
 
     public function testIncrement()
     {
+        $query = $this->getQueryMock();
         $this->criteria->write(['foo' => 1, 'bar' => -1]);
-        $this->assertCount(3, $this->getQueryMock()->increment($this->criteria));
+        $this->assertCount(3, $query->increment($this->criteria));
+        $this->assertSame(['foo' => [101, 301, 501], 'bar' => [199, 399, 599]], $query->table);
     }
 
     public function testSelectColumn()
