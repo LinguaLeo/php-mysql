@@ -8,7 +8,7 @@ use LinguaLeo\DataQuery\Exception\QueryException;
 
 class Query implements QueryInterface
 {
-    private $table;
+    public $table;
 
     public function __construct(array $table = [])
     {

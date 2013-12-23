@@ -35,6 +35,7 @@ class QueryTest extends \PHPUnit_Framework_TestCase
         $this->criteria->write(['foo' => 1, 'bar' => 2]);
 
         $this->assertCount(1, $this->query->insert($this->criteria));
+        $this->assertSame(['foo' => 1, 'bar' => 2], $this->query->table);
     }
 
     public function testTwoInserts()
