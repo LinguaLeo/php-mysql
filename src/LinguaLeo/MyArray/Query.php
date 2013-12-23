@@ -42,7 +42,7 @@ class Query implements QueryInterface
         }
         switch (count($indeces)) {
             case 0: return [];
-            case 1: reset($indeces);
+            case 1: return reset($indeces);
             default: return call_user_func_array('array_intersect', $indeces);
         }
     }
