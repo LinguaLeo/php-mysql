@@ -40,13 +40,11 @@ class Query implements QueryInterface
                 }
             }
         }
-        if (!$indeces) {
-            return [];
+        switch (count($indeces)) {
+            case 0: return [];
+            case 1: reset($indeces);
+            default: return call_user_func_array('array_intersect', $indeces);
         }
-        if (count($indeces) === 1) {
-            return reset($indeces);
-        }
-        return call_user_func_array('array_intersect', $indeces);
     }
 
     private function isEqual($rowValue, $conditionValue, $comparison)
@@ -65,6 +63,22 @@ class Query implements QueryInterface
             default:
                 throw new QueryException(sprintf('Unsupported %s comparison operator', $comparison));
         }
+    }
+
+    private function &castArray(&$value)
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+        return $value = [$value];
+    }
+
+    protected function getMappedTable($table, $fields)
+    {
+        if (empty($fields)) {
+            return $table;
+        }
+        return array_intersect_key($table, array_flip($fields));
     }
 
     private function executeUpdate(Criteria $criteria, callable $processor)
@@ -95,6 +109,9 @@ class Query implements QueryInterface
         return new Result(null, count($affectedRows));
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function delete(Criteria $criteria)
     {
         $indeces = $this->getRowsIndeces($criteria->conditions);
@@ -113,6 +130,9 @@ class Query implements QueryInterface
         return new Result(null, count($indeces));
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function increment(Criteria $criteria)
     {
         return $this->executeUpdate($criteria, function($column, $index, $value) {
@@ -121,14 +141,9 @@ class Query implements QueryInterface
         });
     }
 
-    private function &castArray(&$value)
-    {
-        if (is_array($value)) {
-            return $value;
-        }
-        return $value = [$value];
-    }
-
+    /**
+     * {@inheritdoc}
+     */
     public function insert(Criteria $criteria)
     {
         $count = null;
@@ -148,6 +163,9 @@ class Query implements QueryInterface
         return new Result(null, $count);
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function select(Criteria $criteria)
     {
         $indeces = $this->getRowsIndeces($criteria->conditions);
@@ -161,14 +179,9 @@ class Query implements QueryInterface
         return new Result($table, $this->getRowsCount($table));
     }
 
-    protected function getMappedTable($table, $fields)
-    {
-        if (empty($fields)) {
-            return $table;
-        }
-        return array_intersect_key($table, array_flip($fields));
-    }
-
+    /**
+     * {@inheritdoc}
+     */
     public function update(Criteria $criteria)
     {
         return $this->executeUpdate($criteria, function($column, $index, $value) {
