@@ -54,7 +54,7 @@ class Routing
                 $type = $options;
                 $options = null;
             }
-            $this->updateEntry($tableName, $entry, $type, $options);
+            $this->updateEntry($entry, $type, $options);
         }
         return [$entry['db'], $entry['table_name']];
     }
@@ -81,10 +81,10 @@ class Routing
         return $entry;
     }
 
-    private function updateEntry($tableName, &$entry, $type, $options)
+    private function updateEntry(&$entry, $type, $options)
     {
         if (empty(self::$convertMap[$type])) {
-            throw new RoutingException(sprintf('Unknown "%s" option type for "%s" route', $type, $tableName));
+            throw new RoutingException(sprintf('Unknown "%s" option type', $type));
         }
         list($placeholder, $parameter) = self::$convertMap[$type];
         $entry[$placeholder] = $this->getLocation($entry[$placeholder], $this->getArgument($parameter), $options);

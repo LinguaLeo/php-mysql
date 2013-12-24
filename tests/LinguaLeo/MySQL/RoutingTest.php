@@ -68,7 +68,7 @@ class RoutingTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException \LinguaLeo\MySQL\Exception\RoutingException
-     * @expectedExceptionMessage Unknown "qaz" option type for "atata" route
+     * @expectedExceptionMessage Unknown "qaz" option type
      */
     public function testUnknownOptionType()
     {
