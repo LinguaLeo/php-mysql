@@ -23,10 +23,13 @@ class QueryTest extends \PHPUnit_Framework_TestCase
         $this->query = $this->getMock(
             '\LinguaLeo\MySQL\Query',
             ['executeQuery'],
-            [new Pool(new Configuration(['test' => 'localhost'], 'test', 'test'))]
+            [
+                new Pool(new Configuration(['test' => 'localhost'], 'test', 'test')),
+                new Routing('test', ['trololo' => null])
+            ]
         );
 
-        $this->criteria = new Criteria('test', 'trololo');
+        $this->criteria = new Criteria('trololo');
     }
 
     private function assertSQL($query, $parameters = [])
@@ -34,7 +37,7 @@ class QueryTest extends \PHPUnit_Framework_TestCase
         $this->query
             ->expects($this->once())
             ->method('executeQuery')
-            ->with('test', $query, $parameters);
+            ->with($query, $parameters);
     }
 
     public function testFindAll()

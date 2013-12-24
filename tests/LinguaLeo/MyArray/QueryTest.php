@@ -22,7 +22,7 @@ class QueryTest extends \PHPUnit_Framework_TestCase
 
         $this->query = new Query();
 
-        $this->criteria = new Criteria('test', 'trololo');
+        $this->criteria = new Criteria('test/trololo');
     }
 
     protected function getQueryMock()

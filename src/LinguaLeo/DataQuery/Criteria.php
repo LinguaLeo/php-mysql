@@ -17,8 +17,7 @@ class Criteria
     const IS_NULL = 'IS NULL';
     const IS_NOT_NULL = 'IS NOT NULL';
 
-    public $dbName;
-    public $tableName;
+    public $location;
     public $conditions;
     public $limit;
     public $offset;
@@ -27,10 +26,9 @@ class Criteria
     public $orderBy;
     public $upsert;
 
-    public function __construct($dbName, $tableName)
+    public function __construct($location)
     {
-        $this->dbName = $dbName;
-        $this->tableName = $tableName;
+        $this->location = $location;
     }
 
     public function where($column, $value, $comparison = self::EQUAL)
