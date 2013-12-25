@@ -12,7 +12,6 @@ class RoutingTest extends \PHPUnit_Framework_TestCase
 
         $this->routing = new Routing('linguadb',
             [
-                'user' => null,
                 'translate' => [
                     'db' => 'lang',
                     'options' => ['localized' => ['as' => 'suff']]
@@ -55,15 +54,6 @@ class RoutingTest extends \PHPUnit_Framework_TestCase
     {
         $this->routing->setArguments($arguments);
         $this->assertSame($expected, $this->routing->getRoute($tableName));
-    }
-
-    /**
-     * @expectedException \LinguaLeo\MySQL\Exception\RoutingException
-     * @expectedExceptionMessage Unknown "ololo" table name
-     */
-    public function testUnknownTableName()
-    {
-        $this->routing->getRoute('ololo');
     }
 
     /**

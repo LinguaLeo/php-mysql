@@ -63,14 +63,14 @@ class Routing
      *
      * @param string $tableName
      * @return array
-     * @throws RoutingException
      */
     private function getEntry($tableName)
     {
-        if (!array_key_exists($tableName, $this->map)) {
-            throw new RoutingException(sprintf('Unknown "%s" table name', $tableName));
+        $default = ['db' => $this->dbName, 'table_name' => $tableName];
+        if (empty($this->map[$tableName])) {
+            return $default;
         }
-        return (array)$this->map[$tableName] + ['db' => $this->dbName, 'table_name' => $tableName];
+        return (array)$this->map[$tableName] + $default;
     }
 
     /**
@@ -104,14 +104,12 @@ class Routing
         if (isset($options['not']) && in_array($modifier, (array)$options['not'])) {
             return $location;
         }
-        if (empty($options['as'])) {
-            $options['as'] = 'suff';
-        }
-        switch ($options['as']) {
-            case 'pref': return $modifier.'_'.$location;
-            case 'suff': return $location.'_'.$modifier;
-            default:
-                throw new RoutingException(sprintf('Unknown "%s" constant for "as" operator', $options['as']));
+        if (empty($options['as']) || 'suff' === $options['as']) {
+            return $location.'_'.$modifier;
+        } elseif ('pref' === $options['as']) {
+            return $modifier.'_'.$location;
+        } else {
+            throw new RoutingException(sprintf('Unknown "%s" constant for "as" operator', $options['as']));
         }
         return $location;
     }
