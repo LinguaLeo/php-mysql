@@ -8,7 +8,7 @@ class Routing
 {
     private $dbName;
     private $map;
-    private $arguments = [];
+    private $arguments;
 
     private static $convertMap = [
         'chunked' => ['table_name', 'chunk_id'],
@@ -46,15 +46,14 @@ class Routing
     public function getRoute($tableName)
     {
         $entry = $this->getEntry($tableName);
-        if (empty($entry['options'])) {
-            return [$entry['db'], $entry['table_name']];
-        }
-        foreach ((array)$entry['options'] as $type => $options) {
-            if (is_int($type)) {
-                $type = $options;
-                $options = null;
+        if (isset($entry['options'])) {
+            foreach ((array)$entry['options'] as $type => $options) {
+                if (is_int($type)) {
+                    $type = $options;
+                    $options = null;
+                }
+                $this->updateEntry($entry, $type, $options);
             }
-            $this->updateEntry($entry, $type, $options);
         }
         return [$entry['db'], $entry['table_name']];
     }
@@ -71,16 +70,17 @@ class Routing
         if (!array_key_exists($tableName, $this->map)) {
             throw new RoutingException(sprintf('Unknown "%s" table name', $tableName));
         }
-        $entry = $this->map[$tableName];
-        if (empty($entry['db'])) {
-            $entry['db'] = $this->dbName;
-        }
-        if (empty($entry['table_name'])) {
-            $entry['table_name'] = $tableName;
-        }
-        return $entry;
+        return (array)$this->map[$tableName] + ['db' => $this->dbName, 'table_name' => $tableName];
     }
 
+    /**
+     * Update entry by convert map
+     *
+     * @param array $entry
+     * @param string $type
+     * @param array $options
+     * @throws RoutingException
+     */
     private function updateEntry(&$entry, $type, $options)
     {
         if (empty(self::$convertMap[$type])) {
