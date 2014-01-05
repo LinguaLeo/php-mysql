@@ -54,7 +54,8 @@ $query->insert($criteria);
 ### Query: Upsert
 
 ```sql
-INSERT INTO db_name.table_name(foo,bar) VALUES (1,2) ON DUPLICATE KEY UPDATE foo = VALUES(foo)
+INSERT INTO db_name.table_name(foo,bar) VALUES (1,2)
+ON DUPLICATE KEY UPDATE foo = VALUES(foo)
 ```
 
 ```php
@@ -163,7 +164,7 @@ $query->select($criteria);
 ### Query: Select (aggregation)
 
 ```sql
-SELECT COUNT(*), SUM(foo) FROM db_name.table_name
+SELECT COUNT(*), SUM(foo) FROM db_name.table_name WHERE 1
 ```
 
 ```php
