@@ -8,18 +8,36 @@ use LinguaLeo\DataQuery\QueryInterface;
 
 class Query implements QueryInterface
 {
+    /**
+     * @var Pool
+     */
     private $pool;
 
+    /**
+     * @var Routing
+     */
+    private $routing;
+
+    /**
+     * @var array
+     */
     private $arguments;
+
+    /**
+     * @var array(string,string)
+     */
+    private $route;
 
     /**
      * Instantiate the query
      *
      * @param Pool $pool
+     * @param Routing $routing
      */
-    public function __construct($pool)
+    public function __construct($pool, $routing)
     {
         $this->pool = $pool;
+        $this->routing = $routing;
     }
 
     private function getPlaceholders($count, $placeholder = '?')
@@ -29,7 +47,8 @@ class Query implements QueryInterface
 
     private function getFrom(Criteria $criteria)
     {
-        return $criteria->dbName . '.' . $criteria->tableName;
+        $this->route = $this->routing->getRoute($criteria->location);
+        return implode('.', $this->route);
     }
 
     private function getOrder($orderBy)
@@ -159,7 +178,7 @@ class Query implements QueryInterface
             }
         }
 
-        return $this->executeQuery($criteria->dbName, $SQL, $this->arguments);
+        return $this->executeQuery($SQL, $this->arguments);
     }
 
     /**
@@ -178,7 +197,7 @@ class Query implements QueryInterface
             $SQL .= ' ON DUPLICATE KEY UPDATE ' . $this->getDuplicateUpdatedValues($criteria->upsert);
         }
 
-        return $this->executeQuery($criteria->dbName, $SQL, $this->arguments);
+        return $this->executeQuery($SQL, $this->arguments);
     }
 
     /**
@@ -187,7 +206,7 @@ class Query implements QueryInterface
     public function delete(Criteria $criteria)
     {
         $SQL = 'DELETE FROM ' . $this->getFrom($criteria) . ' WHERE ' . $this->getWhere($criteria);
-        return $this->executeQuery($criteria->dbName, $SQL, $this->arguments);
+        return $this->executeQuery($SQL, $this->arguments);
     }
 
     /**
@@ -226,23 +245,22 @@ class Query implements QueryInterface
             . ' SET ' . call_user_func($placeholdersGenerator, $criteria->fields)
             . ' WHERE ' . $this->getWhere($criteria);
 
-        return $this->executeQuery($criteria->dbName, $SQL, array_merge($criteria->values, $this->arguments));
+        return $this->executeQuery($SQL, array_merge($criteria->values, $this->arguments));
     }
 
     /**
      * Executes the query with parameters
      *
-     * @param string $dbName
      * @param string $query
      * @param array $params
      * @return \LinguaLeo\DataQuery\ResultInterface
      */
-    protected function executeQuery($dbName, $query, $params = [])
+    protected function executeQuery($query, $params = [])
     {
         $force = false;
         do {
             try {
-                return $this->getResult($this->pool->connect($dbName, $force), $query, $params);
+                return $this->getResult($this->pool->connect($this->route[0], $force), $query, $params);
             } catch (\PDOException $e) {
                 $force = $this->hideQueryException($e, $force);
             }

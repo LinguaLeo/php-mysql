@@ -8,6 +8,9 @@
         <testsuite name="MySQL">
             <directory>tests/LinguaLeo/MySQL</directory>
         </testsuite>
+        <testsuite name="MyArray">
+            <directory>tests/LinguaLeo/MyArray</directory>
+        </testsuite>
     </testsuites>
 
     <filter>
