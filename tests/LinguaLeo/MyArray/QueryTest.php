@@ -7,11 +7,6 @@ use LinguaLeo\DataQuery\Criteria;
 class QueryTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * @var Query
-     */
-    protected $query;
-
-    /**
      * @var Criteria
      */
     protected $criteria;
@@ -19,8 +14,6 @@ class QueryTest extends \PHPUnit_Framework_TestCase
     public function setUp()
     {
         parent::setUp();
-
-        $this->query = new Query();
 
         $this->criteria = new Criteria('test/trololo');
     }
@@ -30,31 +23,42 @@ class QueryTest extends \PHPUnit_Framework_TestCase
         return new Query(['foo' => [100, 300, 500], 'bar' => [200, 400, 600]]);
     }
 
+    protected function getEmptyQueryMock()
+    {
+        return new Query();
+    }
+
     public function testOneInsert()
     {
+        $query = $this->getEmptyQueryMock();
+
         $this->criteria->write(['foo' => 1, 'bar' => 2]);
 
-        $this->assertCount(1, $this->query->insert($this->criteria));
-        $this->assertSame(['foo' => [1], 'bar' => [2]], $this->query->table);
+        $this->assertCount(1, $query->insert($this->criteria));
+        $this->assertSame(['foo' => [1], 'bar' => [2]], $query->table);
     }
 
     public function testTwoInserts()
     {
+        $query = $this->getEmptyQueryMock();
+
         $this->criteria->writePipe(['foo' => 1, 'bar' => 2]);
         $this->criteria->writePipe(['foo' => 3, 'bar' => 4]);
 
-        $this->assertCount(2, $this->query->insert($this->criteria));
-        $this->assertSame(['foo' => [1, 3], 'bar' => [2, 4]], $this->query->table);
+        $this->assertCount(2, $query->insert($this->criteria));
+        $this->assertSame(['foo' => [1, 3], 'bar' => [2, 4]], $query->table);
     }
 
     public function testTwoInsertQueries()
     {
+        $query = $this->getEmptyQueryMock();
+
         $this->criteria->write(['foo' => 1, 'bar' => 2]);
-        $this->assertCount(1, $this->query->insert($this->criteria));
-        $this->assertSame(['foo' => [1], 'bar' => [2]], $this->query->table);
+        $this->assertCount(1, $query->insert($this->criteria));
+        $this->assertSame(['foo' => [1], 'bar' => [2]], $query->table);
         $this->criteria->write(['foo' => 1, 'bar' => 2]);
-        $this->assertCount(1, $this->query->insert($this->criteria));
-        $this->assertSame(['foo' => [1, 1], 'bar' => [2, 2]], $this->query->table);
+        $this->assertCount(1, $query->insert($this->criteria));
+        $this->assertSame(['foo' => [1, 1], 'bar' => [2, 2]], $query->table);
     }
 
     /**
@@ -64,7 +68,7 @@ class QueryTest extends \PHPUnit_Framework_TestCase
     {
         $this->criteria->write(['foo' => [1, 3], 'bar' => 2]);
 
-        $this->query->insert($this->criteria);
+        $this->getEmptyQueryMock()->insert($this->criteria);
     }
 
     public function testDeleteAll()
@@ -102,7 +106,7 @@ class QueryTest extends \PHPUnit_Framework_TestCase
 
     public function testDeleteOnEmptyTable()
     {
-        $query = new Query();
+        $query = $this->getEmptyQueryMock();
         $this->assertCount(0, $query->delete($this->criteria));
     }
 
@@ -263,5 +267,17 @@ class QueryTest extends \PHPUnit_Framework_TestCase
     {
         $this->criteria->where('foo', null, '#CUSTOM');
         $this->getQueryMock()->select($this->criteria);
+    }
+
+    public function testFreeResult()
+    {
+        $query = $this->getQueryMock();
+
+        $this->criteria->where('foo', 100);
+        $result = $query->select($this->criteria);
+        $this->assertCount(1, $result);
+
+        $result->free();
+        $this->assertCount(0, $result);
     }
 }

@@ -64,4 +64,11 @@ class Result implements ResultInterface
         }
         return null;
     }
+
+    public function free()
+    {
+        $this->table = null;
+        $this->count = 0;
+        return true;
+    }
 }

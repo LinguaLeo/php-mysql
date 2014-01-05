@@ -45,4 +45,11 @@ interface ResultInterface extends \Countable
      * @return array
      */
     public function column($number);
+
+    /**
+     * Free the result
+     *
+     * @return bool
+     */
+    public function free();
 }

@@ -29,6 +29,9 @@ class RoutingTest extends \PHPUnit_Framework_TestCase
                 ],
                 'content' => [
                     'options' => ['spotted' => ['as' => 'pref'], 'chunked' => ['not' => 99]]
+                ],
+                'word_set' => [
+                    'table_name' => 'glossary'
                 ]
             ]
         );
@@ -44,6 +47,7 @@ class RoutingTest extends \PHPUnit_Framework_TestCase
             ['server_node', ['spot_id' => 3, 'chunk_id' => 99, 'locale' => 'pt'], ['linguadb','server_node_99']],
             ['word', ['spot_id' => 3, 'chunk_id' => 99, 'locale' => 'pt'], ['test_3_pt','word']],
             ['content', ['spot_id' => 'c4ca42', 'chunk_id' => 99, 'locale' => 'ru'], ['c4ca42_linguadb','content']],
+            ['word_set', ['locale' => 'ru'], ['linguadb', 'glossary']]
         ];
     }
 

@@ -6,8 +6,8 @@ use LinguaLeo\MySQL\Exception\RoutingException;
 
 class Routing
 {
-    private $dbName;
-    private $map;
+    private $primaryDbName;
+    private $tablesMap;
     private $arguments;
 
     private static $convertMap = [
@@ -16,10 +16,10 @@ class Routing
         'localized' => ['db', 'locale'],
     ];
 
-    public function __construct($dbName, array $map)
+    public function __construct($primaryDbName, array $tablesMap)
     {
-        $this->dbName = $dbName;
-        $this->map = $map;
+        $this->primaryDbName = $primaryDbName;
+        $this->tablesMap = $tablesMap;
     }
 
     public function setArguments(array $arguments)
@@ -66,11 +66,11 @@ class Routing
      */
     private function getEntry($tableName)
     {
-        $default = ['db' => $this->dbName, 'table_name' => $tableName];
-        if (empty($this->map[$tableName])) {
+        $default = ['db' => $this->primaryDbName, 'table_name' => $tableName];
+        if (empty($this->tablesMap[$tableName])) {
             return $default;
         }
-        return (array)$this->map[$tableName] + $default;
+        return (array)$this->tablesMap[$tableName] + $default;
     }
 
     /**

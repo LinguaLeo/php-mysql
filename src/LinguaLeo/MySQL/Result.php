@@ -18,7 +18,7 @@ class Result implements ResultInterface
 
     public function __destruct()
     {
-        $this->stmt->closeCursor();
+        $this->free();
     }
 
     /**
@@ -89,5 +89,18 @@ class Result implements ResultInterface
     public function count()
     {
         return $this->stmt->rowCount();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function free()
+    {
+        if ($this->stmt) {
+            $this->stmt->closeCursor();
+            $this->stmt = null;
+            return true;
+        }
+        return false;
     }
 }
