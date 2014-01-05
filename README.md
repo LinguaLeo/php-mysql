@@ -38,7 +38,6 @@ Instantiate the MySQL query:
 $query = new LinguaLeo\MySQL\Query($pool, $routing);
 ```
 
-
 ### Query: Insert
 
 ```sql
