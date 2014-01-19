@@ -2,13 +2,13 @@
 
 namespace LinguaLeo\MySQL;
 
+use LinguaLeo\DataQuery\Criteria;
 use LinguaLeo\MySQL\Exception\RoutingException;
 
 class Routing
 {
     private $primaryDbName;
     private $tablesMap;
-    private $arguments;
 
     private static $convertMap = [
         'chunked' => ['table_name', 'chunk_id'],
@@ -22,40 +22,27 @@ class Routing
         $this->tablesMap = $tablesMap;
     }
 
-    public function setArguments(array $arguments)
-    {
-        $this->arguments = $arguments;
-        return $this;
-    }
-
-    public function getArgument($name)
-    {
-        if (isset($this->arguments[$name])) {
-            return $this->arguments[$name];
-        }
-        throw new RoutingException(sprintf('The "%s" parameter is required', $name));
-    }
-
     /**
      * Prepare a route for a table
      *
-     * @param string $tableName
-     * @return array(string,string)
+     * @param Criteria $criteria
+     * @return Route
      * @throws RoutingException
      */
-    public function getRoute($tableName)
+    public function getRoute(Criteria $criteria)
     {
-        $entry = $this->getEntry($tableName);
+        $entry = $this->getEntry($criteria->location);
         if (isset($entry['options'])) {
             foreach ((array)$entry['options'] as $type => $options) {
                 if (is_int($type)) {
                     $type = $options;
                     $options = null;
                 }
-                $this->updateEntry($entry, $type, $options);
+                list($placeholder, $parameter) = $this->getConvertOptions($type);
+                $entry[$placeholder] = $this->getLocation($entry[$placeholder], $criteria->getMeta($parameter), $options);
             }
         }
-        return [$entry['db'], $entry['table_name']];
+        return new Route($entry['db'], $entry['table_name']);
     }
 
     /**
@@ -74,20 +61,18 @@ class Routing
     }
 
     /**
-     * Update entry by convert map
+     * Returns convert options by type
      *
-     * @param array $entry
      * @param string $type
-     * @param array $options
+     * @return array(string,string) placeholder & parameter
      * @throws RoutingException
      */
-    private function updateEntry(&$entry, $type, $options)
+    private function getConvertOptions($type)
     {
         if (empty(self::$convertMap[$type])) {
             throw new RoutingException(sprintf('Unknown "%s" option type', $type));
         }
-        list($placeholder, $parameter) = self::$convertMap[$type];
-        $entry[$placeholder] = $this->getLocation($entry[$placeholder], $this->getArgument($parameter), $options);
+        return self::$convertMap[$type];
     }
 
     /**
@@ -106,11 +91,10 @@ class Routing
         }
         if (empty($options['as']) || 'suff' === $options['as']) {
             return $location.'_'.$modifier;
-        } elseif ('pref' === $options['as']) {
-            return $modifier.'_'.$location;
-        } else {
-            throw new RoutingException(sprintf('Unknown "%s" constant for "as" operator', $options['as']));
         }
-        return $location;
+        if ('pref' === $options['as']) {
+            return $modifier.'_'.$location;
+        }
+        throw new RoutingException(sprintf('Unknown "%s" constant for "as" operator', $options['as']));
     }
 }

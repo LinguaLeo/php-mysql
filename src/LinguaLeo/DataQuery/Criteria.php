@@ -17,6 +17,8 @@ class Criteria
     const IS_NULL = 'IS NULL';
     const IS_NOT_NULL = 'IS NOT NULL';
 
+    private $meta;
+
     public $location;
     public $conditions;
     public $limit;
@@ -26,9 +28,10 @@ class Criteria
     public $orderBy;
     public $upsert;
 
-    public function __construct($location)
+    public function __construct($location, array $meta = [])
     {
         $this->location = $location;
+        $this->meta = $meta;
     }
 
     public function where($column, $value, $comparison = self::EQUAL)
@@ -89,5 +92,19 @@ class Criteria
             return $value;
         }
         return $value = [$value];
+    }
+
+    public function getMeta($name)
+    {
+        if (!isset($this->meta[$name])) {
+            throw new CriteriaException(sprintf('The %s meta value not found', $name));
+        }
+        return $this->meta[$name];
+    }
+
+    public function setMeta($name, $value)
+    {
+        $this->meta[$name] = $value;
+        return $this;
     }
 }
