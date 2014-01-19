@@ -38,19 +38,19 @@ class Connection extends PDO
         if (1 === $this->nestedTransactionCount) {
             $ok = parent::commit();
         } elseif ($this->nestedTransactionCount < 1) {
-            throw new MySQLException('You cannot make commit without begin');
+            throw new MySQLException('You cannot make commit without begin', 10254);
         }
         $this->nestedTransactionCount--;
         return $ok;
     }
 
-    public function rollBack()
+    public function rollBack(\Exception $e = null)
     {
         $ok = true;
         if (1 === $this->nestedTransactionCount) {
             $ok = parent::rollBack();
         } else {
-            throw new MySQLException('Nested transaction is rolled back');
+            throw new MySQLException('Nested transaction is rolled back', 10255, $e);
         }
         $this->nestedTransactionCount--;
         return $ok;

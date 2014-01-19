@@ -8,7 +8,7 @@ class CriteriaTest extends \PHPUnit_Framework_TestCase
 
     public function setUp()
     {
-        $this->criteria = new Criteria('foo', 'bar');
+        $this->criteria = new Criteria('foo', ['locale' => 'ru']);
     }
 
     public function testWhere()
@@ -110,6 +110,7 @@ class CriteriaTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException \LinguaLeo\DataQuery\Exception\CriteriaException
+     * @expectedExceptionMessage The field c not found in values
      */
     public function testWritePipeUndefinedFields()
     {
@@ -130,4 +131,25 @@ class CriteriaTest extends \PHPUnit_Framework_TestCase
         $this->criteria->upsert(['a']);
         $this->assertSame(['a'], $this->criteria->upsert);
     }
+
+    public function testGetMeta()
+    {
+        $this->assertSame('ru', $this->criteria->getMeta('locale'));
+    }
+
+    /**
+     * @expectedException \LinguaLeo\DataQuery\Exception\CriteriaException
+     * @expectedExceptionMessage The trololo meta value not found
+     */
+    public function testUndefinedGetMeta()
+    {
+        $this->criteria->getMeta('trololo');
+    }
+
+    public function testSetMeta()
+    {
+        $this->criteria->setMeta('atata', 'ololo');
+        $this->assertSame('ololo', $this->criteria->getMeta('atata'));
+    }
+
 }

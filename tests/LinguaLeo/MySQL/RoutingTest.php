@@ -2,52 +2,45 @@
 
 namespace LinguaLeo\MySQL;
 
+use LinguaLeo\DataQuery\Criteria;
+
 class RoutingTest extends \PHPUnit_Framework_TestCase
 {
-    protected $routing;
-
-    public function setUp()
-    {
-        parent::setUp();
-
-        $this->routing = new Routing('linguadb',
-            [
-                'translate' => [
-                    'db' => 'lang',
-                    'options' => ['localized' => ['as' => 'suff']]
-                ],
-                'word_user' => [
-                    'db' => 'leotestdb_i18n',
-                    'options' => ['chunked', 'spotted', 'localized' => ['not' => ['ru'], 'as' => 'pref']],
-                ],
-                'server_node' => [
-                    'options' => 'chunked'
-                ],
-                'word' => [
-                    'db' => 'test',
-                    'options' => ['spotted', 'localized']
-                ],
-                'content' => [
-                    'options' => ['spotted' => ['as' => 'pref'], 'chunked' => ['not' => 99]]
-                ],
-                'word_set' => [
-                    'table_name' => 'glossary'
-                ]
-            ]
-        );
-    }
+    private static $tablesMap = [
+        'translate' => [
+            'db' => 'lang',
+            'options' => ['localized' => ['as' => 'suff']]
+        ],
+        'word_user' => [
+            'db' => 'leotestdb_i18n',
+            'options' => ['chunked', 'spotted', 'localized' => ['not' => ['ru'], 'as' => 'pref']],
+        ],
+        'server_node' => [
+            'options' => 'chunked'
+        ],
+        'word' => [
+            'db' => 'test',
+            'options' => ['spotted', 'localized']
+        ],
+        'content' => [
+            'options' => ['spotted' => ['as' => 'pref'], 'chunked' => ['not' => 99]]
+        ],
+        'word_set' => [
+            'table_name' => 'glossary'
+        ]
+    ];
 
     public function provideRouteArguments()
     {
         return [
-            ['user', ['spot_id' => 3, 'chunk_id' => 99, 'locale' => 'ru'], ['linguadb','user']],
-            ['translate', ['locale' => 'ru'], ['lang_ru','translate']],
-            ['word_user', ['spot_id' => 3, 'chunk_id' => 99, 'locale' => 'ru'], ['leotestdb_i18n_3','word_user_99']],
-            ['word_user', ['spot_id' => 3, 'chunk_id' => 99, 'locale' => 'pt'], ['pt_leotestdb_i18n_3','word_user_99']],
-            ['server_node', ['spot_id' => 3, 'chunk_id' => 99, 'locale' => 'pt'], ['linguadb','server_node_99']],
-            ['word', ['spot_id' => 3, 'chunk_id' => 99, 'locale' => 'pt'], ['test_3_pt','word']],
-            ['content', ['spot_id' => 'c4ca42', 'chunk_id' => 99, 'locale' => 'ru'], ['c4ca42_linguadb','content']],
-            ['word_set', ['locale' => 'ru'], ['linguadb', 'glossary']]
+            ['user', ['spot_id' => 3, 'chunk_id' => 99, 'locale' => 'ru'], 'linguadb.user'],
+            ['translate', ['locale' => 'ru'], 'lang_ru.translate'],
+            ['word_user', ['spot_id' => 3, 'chunk_id' => 99, 'locale' => 'ru'], 'leotestdb_i18n_3.word_user_99'],
+            ['word_user', ['spot_id' => 3, 'chunk_id' => 99, 'locale' => 'pt'], 'pt_leotestdb_i18n_3.word_user_99'],
+            ['server_node', ['spot_id' => 3, 'chunk_id' => 99, 'locale' => 'pt'], 'linguadb.server_node_99'],
+            ['word', ['spot_id' => 3, 'chunk_id' => 99, 'locale' => 'pt'], 'test_3_pt.word'],
+            ['content', ['spot_id' => 'c4ca42', 'chunk_id' => 99, 'locale' => 'ru'], 'c4ca42_linguadb.content'],
+            ['word_set', ['locale' => 'ru'], 'linguadb.glossary']
         ];
     }
 
@@ -56,8 +49,8 @@ class RoutingTest extends \PHPUnit_Framework_TestCase
      */
     public function testRouteGetter($tableName, $arguments, $expected)
     {
-        $this->routing->setArguments($arguments);
-        $this->assertSame($expected, $this->routing->getRoute($tableName));
+        $routing = new Routing('linguadb', self::$tablesMap);
+        $this->assertSame($expected, (string) $routing->getRoute(new Criteria($tableName, $arguments)));
     }
 
     /**
@@ -67,7 +60,7 @@ class RoutingTest extends \PHPUnit_Framework_TestCase
     public function testUnknownOptionType()
     {
         $routing = new Routing('ololo', ['atata' => ['options' => 'qaz']]);
-        $routing->getRoute('atata');
+        $routing->getRoute(new Criteria('atata'));
     }
 
     /**
@@ -77,17 +70,6 @@ class RoutingTest extends \PHPUnit_Framework_TestCase
     public function testUnknownAsOperator()
     {
         $routing = new Routing('ololo', ['atata' => ['options' => ['chunked' => ['as' => 'qaz']]]]);
-        $routing->setArguments(['chunk_id' => 1]);
-        $routing->getRoute('atata');
-    }
-
-    /**
-     * @expectedException \LinguaLeo\MySQL\Exception\RoutingException
-     * @expectedExceptionMessage The "chunk_id" parameter is required
-     */
-    public function testRequiredParameter()
-    {
-        $routing = new Routing('ololo', ['atata' => ['options' => ['chunked']]]);
-        $routing->getRoute('atata');
+        $routing->getRoute(new Criteria('atata', ['chunk_id' => 1]));
     }
 }

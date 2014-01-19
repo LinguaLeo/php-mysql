@@ -24,7 +24,7 @@ class Query implements QueryInterface
     private $arguments;
 
     /**
-     * @var array(string,string)
+     * @var Route
      */
     private $route;
 
@@ -47,8 +47,7 @@ class Query implements QueryInterface
 
     private function getFrom(Criteria $criteria)
     {
-        $this->route = $this->routing->getRoute($criteria->location);
-        return implode('.', $this->route);
+        return $this->route = $this->routing->getRoute($criteria);
     }
 
     private function getOrder($orderBy)
@@ -260,7 +259,7 @@ class Query implements QueryInterface
         $force = false;
         do {
             try {
-                return $this->getResult($this->pool->connect($this->route[0], $force), $query, $params);
+                return $this->getResult($this->pool->connect($this->route->getDbName(), $force), $query, $params);
             } catch (\PDOException $e) {
                 $force = $this->hideQueryException($e, $force);
             }
