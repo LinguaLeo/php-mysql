@@ -151,5 +151,4 @@ class CriteriaTest extends \PHPUnit_Framework_TestCase
         $this->criteria->setMeta('atata', 'ololo');
         $this->assertSame('ololo', $this->criteria->getMeta('atata'));
     }
-
 }

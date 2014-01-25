@@ -17,7 +17,7 @@ class Criteria
     const IS_NULL = 'IS NULL';
     const IS_NOT_NULL = 'IS NOT NULL';
 
-    private $meta;
+    protected $meta;
 
     public $location;
     public $conditions;
