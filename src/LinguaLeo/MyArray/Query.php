@@ -8,11 +8,19 @@ use LinguaLeo\DataQuery\Exception\QueryException;
 
 class Query implements QueryInterface
 {
-    public $table;
+    public $tables;
 
-    public function __construct(array $table = [])
+    public function __construct(array $tables = [])
     {
-        $this->table = $table;
+        $this->tables = $tables;
+    }
+
+    private function &getTable($name)
+    {
+        if (!array_key_exists($name, $this->tables)) {
+            throw new QueryException(sprintf('The "%s" table not found', $name));
+        }
+        return $this->tables[$name];
     }
 
     private function getRowsCount($table)
@@ -23,7 +31,7 @@ class Query implements QueryInterface
         return count(reset($table));
     }
 
-    private function getRowsIndeces($conditions)
+    private function getRowsIndeces($table, $conditions)
     {
         if (empty($conditions)) {
             return false;
@@ -31,10 +39,10 @@ class Query implements QueryInterface
         $indeces = [];
         foreach ($conditions as $condition) {
             list($column, $value, $comparison) = $condition;
-            if (!isset($this->table[$column])) {
-                throw new QueryException(sprintf('The %s column not found', $column));
+            if (!isset($table[$column])) {
+                throw new QueryException(sprintf('The "%s" column not found', $column));
             }
-            foreach ($this->table[$column] as $index => $rowValue) {
+            foreach ($table[$column] as $index => $rowValue) {
                 if ($this->isEqual($rowValue, $value, $comparison)) {
                     $indeces[$column][] = $index;
                 }
@@ -61,7 +69,7 @@ class Query implements QueryInterface
             case Criteria::LESS: return $rowValue < $conditionValue;
             case Criteria::NOT_EQUAL: return $rowValue != $conditionValue;
             default:
-                throw new QueryException(sprintf('Unsupported %s comparison operator', $comparison));
+                throw new QueryException(sprintf('Unsupported "%s" comparison operator', $comparison));
         }
     }
 
@@ -87,17 +95,17 @@ class Query implements QueryInterface
             throw new QueryException('No fields for update statement');
         }
 
-        $indeces = $this->getRowsIndeces($criteria->conditions);
-
+        $table = &$this->getTable($criteria->location);
+        $indeces = $this->getRowsIndeces($table, $criteria->conditions);
         $affectedRows = [];
 
         if (false == $indeces) {
-            $indeces = array_keys(reset($this->table));
+            $indeces = array_keys(reset($table));
         }
 
         foreach ($criteria->fields as $i => $column) {
-            if (!isset($this->table[$column])) {
-                throw new QueryException(sprintf('The %s column not found', $column));
+            if (!isset($table[$column])) {
+                throw new QueryException(sprintf('The "%s" column not found', $column));
             }
             foreach ($indeces as $index) {
                 if (call_user_func($processor, $column, $index, $criteria->values[$i])) {
@@ -114,14 +122,15 @@ class Query implements QueryInterface
      */
     public function delete(Criteria $criteria)
     {
-        $indeces = $this->getRowsIndeces($criteria->conditions);
+        $table = &$this->getTable($criteria->location);
+        $indeces = $this->getRowsIndeces($table, $criteria->conditions);
         if (false === $indeces) {
-            $count = $this->getRowsCount($this->table);
-            $this->table = [];
+            $count = $this->getRowsCount($table);
+            $table = [];
             return new Result(null, $count);
         }
 
-        foreach ($this->table as &$column) {
+        foreach ($table as &$column) {
             foreach ($indeces as $index) {
                 unset($column[$index]);
             }
@@ -135,8 +144,9 @@ class Query implements QueryInterface
      */
     public function increment(Criteria $criteria)
     {
-        return $this->executeUpdate($criteria, function($column, $index, $value) {
-            $this->table[$column][$index] += $value;
+        $table = &$this->getTable($criteria->location);
+        return $this->executeUpdate($criteria, function($column, $index, $value) use (&$table) {
+            $table[$column][$index] += $value;
             return true;
         });
     }
@@ -146,18 +156,19 @@ class Query implements QueryInterface
      */
     public function insert(Criteria $criteria)
     {
+        $table = &$this->getTable($criteria->location);
         $count = null;
         foreach ((array)$criteria->fields as $index => $field) {
             $value = $this->castArray($criteria->values[$index]);
-            if (empty($this->table[$field])) {
-                $this->table[$field] = $value;
+            if (empty($table[$field])) {
+                $table[$field] = $value;
             } else {
-                $this->table[$field] = array_merge($this->table[$field], $value);
+                $table[$field] = array_merge($table[$field], $value);
             }
             if (null === $count) {
                 $count = count($value);
             } elseif ($count !== count($value)) {
-                throw new QueryException(sprintf('Wrong rows count in %s column', $field));
+                throw new QueryException(sprintf('Wrong rows count in "%s" column', $field));
             }
         }
         return new Result(null, $count);
@@ -168,15 +179,16 @@ class Query implements QueryInterface
      */
     public function select(Criteria $criteria)
     {
-        $indeces = $this->getRowsIndeces($criteria->conditions);
-        $table = $this->getMappedTable($this->table, $criteria->fields);
+        $table = &$this->getTable($criteria->location);
+        $indeces = $this->getRowsIndeces($table, $criteria->conditions);
+        $mappedTable = $this->getMappedTable($table, $criteria->fields);
         if (false !== $indeces) {
             $flippedIndeces = array_flip($indeces);
-            foreach ($table as &$column) {
+            foreach ($mappedTable as &$column) {
                 $column = array_intersect_key($column, $flippedIndeces);
             }
         }
-        return new Result($table, $this->getRowsCount($table));
+        return new Result($mappedTable, $this->getRowsCount($mappedTable));
     }
 
     /**
@@ -184,9 +196,10 @@ class Query implements QueryInterface
      */
     public function update(Criteria $criteria)
     {
-        return $this->executeUpdate($criteria, function($column, $index, $value) {
-            if ($this->table[$column][$index] != $value) {
-                $this->table[$column][$index] = $value;
+        $table = &$this->getTable($criteria->location);
+        return $this->executeUpdate($criteria, function($column, $index, $value) use (&$table) {
+            if ($table[$column][$index] != $value) {
+                $table[$column][$index] = $value;
                 return true;
             }
             return false;
