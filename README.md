@@ -1,5 +1,11 @@
 # LinguaLeo MySQL micro framework
 
+# THE REPOSITORY IS DEPRECATED. 
+
+Use:
+https://github.com/LinguaLeo/php-dataquery
+https://github.com/LinguaLeo/php-dataquery-mysql
+
 ## Connection Pooling
 
 ```php
